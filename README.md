@@ -94,3 +94,41 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
    * Exactly 993 files in `public/data/details/`.
    * 5,049 strings in `locales/en.json`.
    * 12 server stats chunks in `public/data/stats/`.
+
+---
+
+## 📋 Independent Audit Sign-Off (Phase 1)
+
+* **Audit Status**: **CONDITIONAL PASS (Approved to Proceed)** (2026-09-22)
+* **Auditor**: Independent Phase 1 Reviewer
+* **Key Findings**:
+  * 100% Top-module DAG resolution verified across 318 upgraded hulls.
+  * 0 false-positive ship bundles in Armory scraping (75+ non-ship bundles eliminated).
+  * Storage footprint: `catalog.json` is 80.2 KB gzipped (target was < 320 KB gz).
+  * Consumable array indexing defect noted for immediate resolution in Phase 2.
+  * Parameter column promotions scheduled for Phase 2 data compiler.
+
+---
+
+## 🗺️ Roadmap & Phase Progression
+
+- [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
+- [ ] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
+  - Fix consumable lookup via `abilityMap`.
+  - Extract AA defense and ASW airstrike stats on hull.
+  - Promote key table metrics (`horizontalDispersion`, `verticalDispersion`, `traverse180`, HE/AP alpha, torp detectability) into `catalog.json`.
+  - Implement dynamic build modifier engine (`calcModifiedStats` for upgrades, commander skills, signals).
+- [ ] **Phase 3: Virtualized Parameter Matrix (`/params`)**
+  - TanStack Table v8 + TanStack Virtual v3 implementation.
+  - Pinned columns (Checkbox, Tier, Type, Nation, Name, Acquisition Badge).
+  - Multi-select filters (Nation, Tier, Class, Group, Acquisition source).
+  - -25% Armory coupon toggle & "Hide clones" switch.
+- [ ] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
+  - Armory catalog cards with coupon calculations.
+  - Steel-to-Coal shortage converter.
+  - Removed ships and Dockyard history pages.
+- [ ] **Phase 5: Server Statistics View (`/stats`)**
+  - Region (EU/NA/Asia), Timespan, and Skill Bracket filtering.
+  - Battle-weighted normalization and Personal Rating (PR) engine.
+- [ ] **Phase 6: PWA, Offline Caching & Final Polish**
+
