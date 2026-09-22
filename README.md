@@ -123,15 +123,18 @@ The automated test suite (`npm test`) executes **119 total tests** across 11 val
 
 ---
 
-## 📋 Independent Audit Sign-Off (Phase 1)
+## 📋 Independent Audit Sign-Off (Phase 1 & Phase 2)
 
-* **Audit Status**: **CONDITIONAL PASS (Approved to Proceed)** (2026-09-22)
-* **Auditor**: Independent Phase 1 Reviewer
-* **Key Findings**:
-  * 100% Top-module DAG resolution verified across 318 upgraded hulls.
-  * 0 false-positive ship bundles in Armory scraping (75+ non-ship bundles eliminated).
-  * Storage footprint: `catalog.json` is 116 KB gzipped (target was < 320 KB gz).
-  * Consumable array indexing defect noted in Phase 1 audit completely resolved in Phase 2.
+* **Phase 1 Audit Status**: **CONDITIONAL PASS (Approved)** (2026-09-22)
+* **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
+* **Auditor**: Independent Phase 2 Reviewer
+* **Key Findings (Phase 2)**:
+  * 100% consumable resolution across all 993 ship details via `abilityMap` dictionary.
+  * AA Defense aura continuous DPS and ASW airstrike metrics fully extracted.
+  * 12 key scalar metrics promoted to `catalog.json` (size: 112.79 KB gz, well within 320 KB gz budget).
+  * Build modifier engine (`calcModifiedStats`) verified with exact compound multipliers (CE + CSM1 = 0.81) and dynamic HP-scaling Adrenaline Rush.
+  * 119/119 automated tests passing across Phase 1 and Phase 2.
+  * Production bundle built cleanly in 3.25s (76.6 KB gz total frontend assets).
 
 ---
 
@@ -139,17 +142,12 @@ The automated test suite (`npm test`) executes **119 total tests** across 11 val
 
 - [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
 - [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
-  - [x] Fix consumable lookup via `abilityMap`.
-  - [x] Extract AA defense (near, mid, far continuous DPS, max range, flak count, flak damage).
-  - [x] Extract ASW airstrike stats on hull (range, reload, flight time, payload, bomb damage).
-  - [x] Promote key table metrics (`horizontalDispersion`, `verticalDispersion`, `traverse180`, `heAlpha`, `apAlpha`, `sapAlpha`, `torpedoDetect`, `aaRange`, `aaDps`, `flakCount`, `aswRange`, `smokePenalty`) into `catalog.json`.
-  - [x] Implement dynamic build modifier engine (`calcModifiedStats` for upgrades, commander skills, signals) in `src/utils/modifiers.ts` and `scripts/modifiers.mjs`.
-  - [x] Automated test suite: `scripts/verify_phase2.mjs` (68/68 passing).
 - [ ] **Phase 3: Virtualized Parameter Matrix (`/params`)**
   - TanStack Table v8 + TanStack Virtual v3 implementation.
   - Pinned columns (Checkbox, Tier, Type, Nation, Name, Acquisition Badge).
   - Multi-select filters (Nation, Tier, Class, Group, Acquisition source).
   - -25% Armory coupon toggle & "Hide clones" switch.
+  - Dynamic Build Modifier drawer and live stat recalculations.
 - [ ] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
   - Armory catalog cards with coupon calculations.
   - Steel-to-Coal shortage converter.
