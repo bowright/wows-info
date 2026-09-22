@@ -122,13 +122,22 @@ export interface CompactShipCatalogItem {
     status: AvailabilityStatus;
     primaryCurrency: string;
     price: number | null;
+    basePrice?: number | null;
     couponEligible: boolean;
     couponPrice: number | null;
     steelEquivalent: number | null;
+    minDoubloonsRequired?: number | null;
+    totalPhases?: number | null;
     isClone: boolean;
+    cloneOfShipId?: number | null;
+    obtainMethodText?: string;
+    availabilityNote?: string | null;
     rarity: string | null;
   };
 }
+
+export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'torpedoes' | 'aa' | 'asw' | 'all';
+
 
 export interface BallisticsPoint {
   distanceKm: number;

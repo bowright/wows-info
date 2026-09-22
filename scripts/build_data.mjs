@@ -135,10 +135,16 @@ export async function buildData(options = {}) {
       status: acqRecord.status,
       primaryCurrency: acqRecord.primaryCurrency,
       price: acqRecord.price,
+      basePrice: acqRecord.basePrice,
       couponEligible: acqRecord.couponEligible,
       couponPrice: acqRecord.couponPrice,
       steelEquivalent: acqRecord.steelEquivalent,
+      minDoubloonsRequired: acqRecord.minDoubloonsRequired,
+      totalPhases: acqRecord.totalPhases,
       isClone: acqRecord.isClone,
+      cloneOfShipId: acqRecord.cloneOfShipId,
+      obtainMethodText: acqRecord.obtainMethodText,
+      availabilityNote: acqRecord.availabilityNote,
       rarity: acqRecord.rarity
     };
   }

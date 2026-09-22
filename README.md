@@ -99,9 +99,9 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
 
 ---
 
-## 🧪 Phase 1 & 2 Verification Results
+## 🧪 Phase 1, 2 & 3 Verification Results
 
-The automated test suite (`npm test`) executes **119 total tests** across 11 validation suites with **100% passing status**:
+The automated test suite (`npm test`) executes **187 total tests** across 18 validation suites with **100% passing status**:
 
 *   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
     *   Catalog Completeness: 993/993 ships ingested with valid typed fields and non-zero HP.
@@ -110,16 +110,20 @@ The automated test suite (`npm test`) executes **119 total tests** across 11 val
     *   Historical Catalog: Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`. Dockyard ships marked `dockyard_historical`. Clones linked to parent ships.
     *   Krupp Ballistics & Overmatch Precision: Authentic WoWs penetration formulas and overmatch thresholds.
 *   **Phase 2 Verification (`scripts/verify_phase2.mjs`)**: 68/68 tests passing.
-    *   **Consumables Ingestion**: `abilityMap` resolves all 993 ships; full slot trees with charges (`numConsumables`), cooldown (`reloadTime`), duration (`workTime`), localized names, and logic modifiers (e.g. Iowa DCP 80s/20s/-1 charges, Des Moines 10km Radar 35s, Shimakaze Smoke 1.8km detect).
-    *   **AA Defense & Flak**: Extracted continuous DPS (near, mid, far), max AA range, flak burst count, and flak damage (e.g. Iowa 1,033 continuous DPS, 5.8 km range, 8 flak bursts, 1,610 damage).
-    *   **ASW Armament**: Extracted airstrike stats (range, reload, flight time, payload count, bomb damage) across 570 ships and ship-mounted depth charges across destroyers.
-    *   **Promoted Table Matrix Columns**: `traverse180`, `horizontalDispersion`, `verticalDispersion`, `heAlpha`, `apAlpha`, `sapAlpha`, `torpedoDetect`, `aaRange`, `aaDps`, `flakCount`, `aswRange`, and `smokePenalty` promoted directly to `catalog.json` for 60fps virtualized matrix rendering.
-    *   **Dynamic Build Modifier Engine**: `calcModifiedStats` verified with exact compound multipliers:
-        *   CE + CSM1 on Iowa: 15.7 km $\rightarrow$ 12.72 km detectability (exact 0.81 compound multiplier).
-        *   Main Battery Mod 3: 30.0s $\rightarrow$ 26.4s reload (-12%).
-        *   Sierra Mike Signal: 33.0 kts $\rightarrow$ 34.65 kts (+5%).
-        *   Adrenaline Rush at 50% HP: 30.0s $\rightarrow$ 27.0s (-10% reload).
-        *   Superintendent: finite consumable charges incremented by +1; unlimited (-1) charges preserved.
+    *   **Consumables Ingestion**: `abilityMap` resolves all 993 ships; full slot trees with charges (`numConsumables`), cooldown (`reloadTime`), duration (`workTime`), localized names, and logic modifiers.
+    *   **AA Defense & Flak**: Continuous DPS (near, mid, far), max AA range, flak burst count, and flak damage.
+    *   **ASW Armament**: Airstrike stats across 570 ships and ship-mounted depth charges across destroyers.
+    *   **Promoted Table Matrix Columns**: 12 key scalar metrics promoted directly to `catalog.json` for 60fps virtualized matrix rendering.
+    *   **Dynamic Build Modifier Engine**: Compound multipliers verified for upgrades, commander skills, and signals.
+*   **Phase 3 Verification (`scripts/verify_phase3.mjs`)**: 68/68 tests passing.
+    *   **Acquisition Filtering**: Filter by Coal returns exactly 35 ships; Steel returns exactly 21 ships; Research Bureau returns 19 ships; Dockyard returns 14 ships; Removed returns 26 ships.
+    *   **Coupon Modeling**: -25% Armory coupon toggle accurately discounts Coal and Steel ships without affecting non-eligible currencies (Research Bureau RP stays unchanged).
+    *   **Clone & Replica Management**: Hide Clones toggle removes all 84 clone ships (993 $\rightarrow$ 909 ships), while filtering specifically by Clones returns all 84 replicas.
+    *   **Search Query Precision**: Substring and case-insensitive matching across ship name, localized name, and index.
+    *   **Compound Filtering**: Multi-dimensional filtering across tier, nation, and class (e.g. Tier 10 US Battleships).
+    *   **TanStack Table v8 + TanStack Virtual v3**: Virtualized table container rendering 993 rows with 6 sticky pinned columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`).
+    *   **Preset Column Views**: 7 preset views (`general`, `survivability`, `artillery`, `torpedoes`, `aa`, `asw`, `all`) with dynamic stat heatmaps.
+    *   **Live Recomputation**: Real-time updates from BuildModifierDrawer (slots 1-6, commander skills with dynamic HP slider, and signals).
 
 ---
 
@@ -142,12 +146,13 @@ The automated test suite (`npm test`) executes **119 total tests** across 11 val
 
 - [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
 - [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
-- [ ] **Phase 3: Virtualized Parameter Matrix (`/params`)**
+- [x] **Phase 3: Virtualized Parameter Matrix (`/params`)**
   - TanStack Table v8 + TanStack Virtual v3 implementation.
   - Pinned columns (Checkbox, Tier, Type, Nation, Name, Acquisition Badge).
   - Multi-select filters (Nation, Tier, Class, Group, Acquisition source).
   - -25% Armory coupon toggle & "Hide clones" switch.
   - Dynamic Build Modifier drawer and live stat recalculations.
+  - Floating Compare dock and comparison view.
 - [ ] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
   - Armory catalog cards with coupon calculations.
   - Steel-to-Coal shortage converter.
@@ -156,4 +161,5 @@ The automated test suite (`npm test`) executes **119 total tests** across 11 val
   - Region (EU/NA/Asia), Timespan, and Skill Bracket filtering.
   - Battle-weighted normalization and Personal Rating (PR) engine.
 - [ ] **Phase 6: PWA, Offline Caching & Final Polish**
+
 
