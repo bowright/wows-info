@@ -127,18 +127,20 @@ The automated test suite (`npm test`) executes **187 total tests** across 18 val
 
 ---
 
-## 📋 Independent Audit Sign-Off (Phase 1 & Phase 2)
+## 📋 Independent Audit Sign-Off (Phases 1, 2 & 3)
 
 * **Phase 1 Audit Status**: **CONDITIONAL PASS (Approved)** (2026-09-22)
 * **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
-* **Auditor**: Independent Phase 2 Reviewer
-* **Key Findings (Phase 2)**:
-  * 100% consumable resolution across all 993 ship details via `abilityMap` dictionary.
-  * AA Defense aura continuous DPS and ASW airstrike metrics fully extracted.
-  * 12 key scalar metrics promoted to `catalog.json` (size: 112.79 KB gz, well within 320 KB gz budget).
-  * Build modifier engine (`calcModifiedStats`) verified with exact compound multipliers (CE + CSM1 = 0.81) and dynamic HP-scaling Adrenaline Rush.
-  * 119/119 automated tests passing across Phase 1 and Phase 2.
-  * Production bundle built cleanly in 3.25s (76.6 KB gz total frontend assets).
+* **Phase 3 Audit Status**: **PASS (Remediated & Approved)** (2026-09-22)
+* **Auditor**: Independent Phase 3 Reviewer
+* **Key Findings (Phase 3)**:
+  * 60fps virtualized table rendering over 993 ships using `@tanstack/react-table` + `@tanstack/react-virtual`.
+  * 6 sticky pinned columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`).
+  * Full acquisition badging (Coal, Steel, Doubloons, Research Bureau, Dockyards, Removed, Clones) with interactive popovers showing base vs coupon prices and 1:10 Steel substitution.
+  * Multi-select filters, `-25% Coupons` toggle, `Hide Clones` toggle, and `Stock vs Top Modules` toggle.
+  * Build modifier drawer dynamically updates table metrics via `calcModifiedStats`.
+  * Reactivity memoization defect in `ShipParametersView.tsx` remediated and verified.
+  * 187/187 automated tests passing across Phase 1, 2, and 3; production bundle ~121 kB gz.
 
 ---
 
@@ -147,19 +149,13 @@ The automated test suite (`npm test`) executes **187 total tests** across 18 val
 - [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
 - [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
 - [x] **Phase 3: Virtualized Parameter Matrix (`/params`)**
-  - TanStack Table v8 + TanStack Virtual v3 implementation.
-  - Pinned columns (Checkbox, Tier, Type, Nation, Name, Acquisition Badge).
-  - Multi-select filters (Nation, Tier, Class, Group, Acquisition source).
-  - -25% Armory coupon toggle & "Hide clones" switch.
-  - Dynamic Build Modifier drawer and live stat recalculations.
-  - Floating Compare dock and comparison view.
 - [ ] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
-  - Armory catalog cards with coupon calculations.
-  - Steel-to-Coal shortage converter.
-  - Removed ships and Dockyard history pages.
+  - Card-based Armory visual catalog (Coal, Steel, Doubloons, Research Points).
+  - Coupon calculator with global and per-card -25% discount toggles.
+  - Interactive Steel-to-Coal shortage converter (1 Steel = 10 Coal).
+  - Removed Ships Hall of Fame (rarity tiers, Santa crate drop rates, historical removal versions).
+  - Dockyard Archive (required phases, starter pack costs, and reward ships).
 - [ ] **Phase 5: Server Statistics View (`/stats`)**
   - Region (EU/NA/Asia), Timespan, and Skill Bracket filtering.
   - Battle-weighted normalization and Personal Rating (PR) engine.
 - [ ] **Phase 6: PWA, Offline Caching & Final Polish**
-
-
