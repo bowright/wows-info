@@ -278,3 +278,83 @@ export type ModifiedShipStats = CompactShipCatalogItem & {
   burnTime?: number;
   floodTime?: number;
 };
+
+export interface ArmoryOffer {
+  bundleId: string;
+  shipId: number;
+  title: string;
+  currency: string;
+  price: number;
+  originalPrice: number | null;
+  discount: number | null;
+  couponEligible: boolean;
+  couponPrice: number;
+  steelEquivalent: number | null;
+  isPrimary: boolean;
+  isBonus: boolean;
+  bundleExpiry: string | null;
+  shipClass: ShipClass | string;
+  level: number;
+  nation: string;
+}
+
+export interface ArmoryMasterData {
+  version: string;
+  updatedAt: string;
+  source: string;
+  totalShips: number;
+  armoryBundlesCount: number;
+  armoryOffersCount: number;
+  uniqueArmoryShipsCount: number;
+  bundles: any[];
+  offers: ArmoryOffer[];
+  ships: Record<string, ShipAcquisitionData>;
+}
+
+export interface DockyardShipInfo {
+  shipId: number;
+  name: string;
+  dispName: string;
+  tier: number;
+  class: ShipClass;
+  nation: string;
+  totalPhases: number;
+  freePhases: number;
+  starterPackPhases: number;
+  minDoubloonsRequired: number;
+  releaseVersion: string;
+  eventYear: number;
+  notes: string;
+}
+
+export interface RemovedShipInfo {
+  shipId: number;
+  name: string;
+  dispName: string;
+  tier: number;
+  class: ShipClass;
+  nation: string;
+  removalVersion: string;
+  removalReason: string;
+  rarity: string;
+  prevCurrency: string;
+  prevPrice: number | null;
+}
+
+export interface ShortageCalculationResult {
+  offer: ArmoryOffer;
+  ship?: CompactShipCatalogItem;
+  effectiveCoalPrice: number;
+  isCouponApplied: boolean;
+  canAffordPureCoal: boolean;
+  pureCoalRemaining: number;
+  pureCoalShortage: number;
+  steelNeededToCover: number;
+  canAffordWithSteel: boolean;
+  steelRemainingAfterCover: number;
+  effectiveSteelShortage: number;
+  remainingCoalShortageWithSteel: number;
+  daysToGoalPureCoal: number;
+  daysToGoalWithSteel: number;
+}
+

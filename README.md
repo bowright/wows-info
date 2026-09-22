@@ -99,9 +99,9 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
 
 ---
 
-## 🧪 Phase 1, 2 & 3 Verification Results
+## 🧪 Phase 1, 2, 3 & 4 Verification Results
 
-The automated test suite (`npm test`) executes **187 total tests** across 18 validation suites with **100% passing status**:
+The automated test suite (`npm test`) executes **566 total tests** across 24 validation suites with **100% passing status**:
 
 *   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
     *   Catalog Completeness: 993/993 ships ingested with valid typed fields and non-zero HP.
@@ -124,6 +124,13 @@ The automated test suite (`npm test`) executes **187 total tests** across 18 val
     *   **TanStack Table v8 + TanStack Virtual v3**: Virtualized table container rendering 993 rows with 6 sticky pinned columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`).
     *   **Preset Column Views**: 7 preset views (`general`, `survivability`, `artillery`, `torpedoes`, `aa`, `asw`, `all`) with dynamic stat heatmaps.
     *   **Live Recomputation**: Real-time updates from BuildModifierDrawer (slots 1-6, commander skills with dynamic HP slider, and signals).
+*   **Phase 4 Verification (`scripts/verify_phase4.mjs`)**: 379/379 tests passing.
+    *   **Armory Offers Breakdown**: 228 active offers verified across 5 categories (52 Coal, 21 Steel, 19 Research Bureau, 126 Doubloons, 10 Event Tokens). 100% matched to catalog ships with 0 orphans.
+    *   **Coupon Calculation Precision**: 100% of Coal, Steel, and Doubloon offers verified with exact `Math.round(price * 0.75)` discounts; Research Bureau (RP) and Event tokens verified strictly ineligible (0% discount, full price).
+    *   **Shortage Calculator Math**: Verified pure Coal affordability, exact shortage calculation, 1:10 Steel substitution (`1 Steel = 10 Coal`), leftover resources, and time-to-goal estimation based on user daily collection rates.
+    *   **Dockyard Archive Completeness**: Verified all 14 historical dockyard campaigns (*Wisconsin, Michelangelo, Lüshun, Daisen, Atlântico, Puerto Rico, Marlborough, De Zeven Provinciën, Hizen, Anchorage, Odin, Almirante Oquendo, Niord, Schill*) with total phases, free mission phases, and starter pack Doubloon requirements.
+    *   **Removed Ships Hall of Fame**: Verified all 26 removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers, Missouri, Massachusetts, Nelson, Jean Bart, etc.*) with Santa Tier 1 drop ratings, historical removal versions, and original acquisition prices.
+    *   **Frontend UI & Component Contract**: Full export and prop verification for `ArmoryCard.tsx`, `ShortageCalculator.tsx`, and `ArmoryView.tsx` with all 8 tab triggers.
 
 ---
 
@@ -133,14 +140,6 @@ The automated test suite (`npm test`) executes **187 total tests** across 18 val
 * **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 3 Audit Status**: **PASS (Remediated & Approved)** (2026-09-22)
 * **Auditor**: Independent Phase 3 Reviewer
-* **Key Findings (Phase 3)**:
-  * 60fps virtualized table rendering over 993 ships using `@tanstack/react-table` + `@tanstack/react-virtual`.
-  * 6 sticky pinned columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`).
-  * Full acquisition badging (Coal, Steel, Doubloons, Research Bureau, Dockyards, Removed, Clones) with interactive popovers showing base vs coupon prices and 1:10 Steel substitution.
-  * Multi-select filters, `-25% Coupons` toggle, `Hide Clones` toggle, and `Stock vs Top Modules` toggle.
-  * Build modifier drawer dynamically updates table metrics via `calcModifiedStats`.
-  * Reactivity memoization defect in `ShipParametersView.tsx` remediated and verified.
-  * 187/187 automated tests passing across Phase 1, 2, and 3; production bundle ~121 kB gz.
 
 ---
 
@@ -149,13 +148,14 @@ The automated test suite (`npm test`) executes **187 total tests** across 18 val
 - [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
 - [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
 - [x] **Phase 3: Virtualized Parameter Matrix (`/params`)**
-- [ ] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
-  - Card-based Armory visual catalog (Coal, Steel, Doubloons, Research Points).
-  - Coupon calculator with global and per-card -25% discount toggles.
-  - Interactive Steel-to-Coal shortage converter (1 Steel = 10 Coal).
-  - Removed Ships Hall of Fame (rarity tiers, Santa crate drop rates, historical removal versions).
-  - Dockyard Archive (required phases, starter pack costs, and reward ships).
+- [x] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
+  - Card-based Armory visual catalog (Coal, Steel, Doubloons, Research Points, Event tokens).
+  - Coupon calculator with global -25% discount toggling.
+  - Interactive Steel-to-Coal shortage converter (1 Steel = 10 Coal) and daily collection time estimation.
+  - Removed Ships Hall of Fame (26 ships with rarity tiers, Santa crate drop rates, historical removal versions).
+  - Dockyard Archive (14 campaigns with total phases, free phases, and starter pack Doubloon requirements).
 - [ ] **Phase 5: Server Statistics View (`/stats`)**
   - Region (EU/NA/Asia), Timespan, and Skill Bracket filtering.
   - Battle-weighted normalization and Personal Rating (PR) engine.
 - [ ] **Phase 6: PWA, Offline Caching & Final Polish**
+
