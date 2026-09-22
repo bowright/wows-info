@@ -141,17 +141,20 @@ The automated test suite (`npm test`) executes **1,055 total tests** across 29 v
 
 ---
 
-## 📋 Independent Audit Sign-Off (Phases 1, 2, 3 & 4)
+## 📋 Independent Audit Sign-Off (Phases 1, 2, 3, 4 & 5)
 
 * **Phase 1 Audit Status**: **CONDITIONAL PASS (Approved)** (2026-09-22)
 * **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 3 Audit Status**: **PASS (Remediated & Approved)** (2026-09-22)
 * **Phase 4 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
-* **Key Findings (Phase 4)**:
-  * 1:10 Steel-to-Coal substitution engine verified mathematically with exact ceiling calculations and progress bar visualization.
-  * 100% of 228 active Armory offers correctly categorized (Coal: 52, Steel: 21, RP: 19, Doubloons: 126, Event tokens: 10).
-  * -25% Armory coupon discounts verified (only on Coal, Steel, Doubloons; excluded on RP & Event tokens).
-  * 26 removed ships and 14 historical dockyards verified with exact phase math and historical drop rarity notes.
+* **Phase 5 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
+* **Auditor**: Independent Phase 5 Reviewer
+* **Key Findings (Phase 5)**:
+  * Strict mathematical conservation of raw battle and performance accumulators ($\sum b_i = b_{\text{all}}$) verified across all 11,916 records in all 12 chunks.
+  * Battle-weighted aggregate metrics verified: Win Rate %, Avg Damage, Frag Rate, Survival %, Avg XP, Spotting, and Potential damage.
+  * Personal Rating (PR) engine verified: exact baseline PR = 1150, sub-floor clamping, and 7-tier community colors (<750 to 2100+).
+  * Cross-domain acquisition filtering in server statistics verified across Coal, Steel, Doubloons, Research Bureau, Dockyard, Tech Tree, and Removed.
+  * 1,055/1,055 automated tests passing across Phases 1–5; clean production build (133.7 kB gz).
 
 ---
 
@@ -162,10 +165,9 @@ The automated test suite (`npm test`) executes **1,055 total tests** across 29 v
 - [x] **Phase 3: Virtualized Parameter Matrix (`/params`)**
 - [x] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
 - [x] **Phase 5: Server Statistics View (`/stats`) & Personal Rating Engine**
-  - Chunked server statistics loader (`stats-[server]-[span].json` across EU, NA, and Asia for 1, 3, 12, all updates).
-  - Skill bracket breakdown (All Players, Low <47.5%, Medium 47.5-52.5%, High 52.5-60%, Top 1% Unicum >60%).
-  - Battle-weighted normalization engine: $\sum \text{Wins}_i / \sum \text{Battles}_i$, damage, frags, survival, XP, spotting, potential, planes.
-  - Personal Rating (PR) calculation engine using expected metrics baselines and 7-tier color model.
-  - Cross-domain acquisition filtering (e.g. "Top performing Coal cruisers by win rate on EU over the last 3 updates").
-- [ ] **Phase 6: PWA, Offline Caching & Final Polish**
+- [ ] **Phase 6: PWA, Offline Caching, Polish & One-Command Launch**
+  - Progressive Web App (PWA) manifest and Service Worker offline caching.
+  - Offline resilience testing (verifying 100% functionality without internet connection).
+  - Quick launch script (`./start.sh` or `npm start`) orchestrating Vite preview and Option B sync service.
+  - Comprehensive end-to-end integration and documentation updates.
 
