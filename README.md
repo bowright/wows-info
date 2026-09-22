@@ -99,9 +99,9 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
 
 ---
 
-## 🧪 Phase 1, 2, 3 & 4 Verification Results
+## 🧪 Phase 1, 2, 3, 4 & 5 Verification Results
 
-The automated test suite (`npm test`) executes **566 total tests** across 24 validation suites with **100% passing status**:
+The automated test suite (`npm test`) executes **1,055 total tests** across 29 validation suites with **100% passing status**:
 
 *   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
     *   Catalog Completeness: 993/993 ships ingested with valid typed fields and non-zero HP.
@@ -131,6 +131,13 @@ The automated test suite (`npm test`) executes **566 total tests** across 24 val
     *   **Dockyard Archive Completeness**: Verified all 14 historical dockyard campaigns (*Wisconsin, Michelangelo, Lüshun, Daisen, Atlântico, Puerto Rico, Marlborough, De Zeven Provinciën, Hizen, Anchorage, Odin, Almirante Oquendo, Niord, Schill*) with total phases, free mission phases, and starter pack Doubloon requirements.
     *   **Removed Ships Hall of Fame**: Verified all 26 removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers, Missouri, Massachusetts, Nelson, Jean Bart, etc.*) with Santa Tier 1 drop ratings, historical removal versions, and original acquisition prices.
     *   **Frontend UI & Component Contract**: Full export and prop verification for `ArmoryCard.tsx`, `ShortageCalculator.tsx`, and `ArmoryView.tsx` with all 8 tab triggers.
+*   **Phase 5 Verification (`scripts/verify_phase5.mjs`)**: 489/489 tests passing.
+    *   **12 Dynamic Chunks**: Verified all 12 combinations load and parse valid 993 ship records (`stats-[server]-[span].json` across EU, NA/com, ASIA for spans 1, 3, 12, all).
+    *   **Skill Bracket & Mathematical Exactness**: Verified exact battles and raw metric accumulators conservation ($b_{\text{all}} = \sum b_i, \text{wins}_{\text{all}} = \sum \text{wins}_i, \text{dmg}_{\text{all}} = \sum \text{dmg}_i, \text{frags}_{\text{all}} = \sum \text{frags}_i$) across All, Low (<47.5%), Medium (47.5–52.5%), High (52.5–60%), and Top 1% Unicum (>60%).
+    *   **Battle-Weighted Normalization**: Verified exact weighted aggregate metrics: $\text{WR} = \sum \text{wins} / \sum \text{games} \times 100\%$, $\text{AvgDmg} = \sum \text{dmg} / \sum \text{games}$, $\text{FragRate} = \sum \text{frags} / \sum \text{games}$, $\text{SurvRate} = \sum \text{surv} / \sum \text{games} \times 100\%$, $\text{AvgXP} = \sum \text{xp} / \sum \text{games}$.
+    *   **Personal Rating (PR) Engine**: Verified community standard formula ($r\text{Dmg} = \text{avgDmg}/\text{expDmg}$, $r\text{Frags} = \text{avgFrags}/\text{expFrags}$, $r\text{Win} = \text{winRate}/\text{expWinRate}$, $n\text{Dmg} = \max(0, (r\text{Dmg}-0.4)/0.6)$, $n\text{Frags} = \max(0, (r\text{Frags}-0.1)/0.9)$, $n\text{Win} = \max(0, (r\text{Win}-0.7)/0.3)$, $\text{PR} = 700 \cdot n\text{Dmg} + 300 \cdot n\text{Frags} + 150 \cdot n\text{Win}$) with PR = 1150 at baseline, PR = 0 at zero, and exact tier boundaries/hex colors across all 7 tiers (<750 Below Average, 750–1100 Average, 1100–1350 Good, 1350–1550 Very Good, 1550–1750 Great, 1750–2100 Unicum, 2100+ Super Unicum).
+    *   **Cross-Domain Acquisition Filtering**: Verified filtering server performance statistics across Coal (35 ships), Steel (21 ships), Research Bureau (19 ships), Dockyard (14 ships), Tech Tree (408 ships), and Removed (26 ships) categories, as well as complex compound queries (e.g. Top performing Coal cruisers by win rate on EU over the last 3 updates).
+    *   **Frontend UI & Store Integration**: Full verification for `useStatsStore.ts`, `prCalculator.ts`, and `ServerStatsView.tsx` with sticky pinned columns, interactive sorting, min-max heatmap coloring, and battle-weighted KPI summary row.
 
 ---
 
@@ -140,13 +147,11 @@ The automated test suite (`npm test`) executes **566 total tests** across 24 val
 * **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 3 Audit Status**: **PASS (Remediated & Approved)** (2026-09-22)
 * **Phase 4 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
-* **Auditor**: Independent Phase 4 Reviewer
 * **Key Findings (Phase 4)**:
   * 1:10 Steel-to-Coal substitution engine verified mathematically with exact ceiling calculations and progress bar visualization.
   * 100% of 228 active Armory offers correctly categorized (Coal: 52, Steel: 21, RP: 19, Doubloons: 126, Event tokens: 10).
   * -25% Armory coupon discounts verified (only on Coal, Steel, Doubloons; excluded on RP & Event tokens).
   * 26 removed ships and 14 historical dockyards verified with exact phase math and historical drop rarity notes.
-  * 566/566 automated tests passing across Phases 1–4; clean production build (127.8 KB gz).
 
 ---
 
@@ -156,11 +161,11 @@ The automated test suite (`npm test`) executes **566 total tests** across 24 val
 - [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
 - [x] **Phase 3: Virtualized Parameter Matrix (`/params`)**
 - [x] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
-- [ ] **Phase 5: Server Statistics View (`/stats`)**
+- [x] **Phase 5: Server Statistics View (`/stats`) & Personal Rating Engine**
   - Chunked server statistics loader (`stats-[server]-[span].json` across EU, NA, and Asia for 1, 3, 12, all updates).
   - Skill bracket breakdown (All Players, Low <47.5%, Medium 47.5-52.5%, High 52.5-60%, Top 1% Unicum >60%).
-  - Battle-weighted normalization engine: $\sum \text{Wins}_i / \sum \text{Battles}_i$.
-  - Personal Rating (PR) calculation engine using expected metrics baselines.
-  - Cross-domain acquisition filtering (e.g. "Find top performing Coal ships on EU over last 3 updates").
+  - Battle-weighted normalization engine: $\sum \text{Wins}_i / \sum \text{Battles}_i$, damage, frags, survival, XP, spotting, potential, planes.
+  - Personal Rating (PR) calculation engine using expected metrics baselines and 7-tier color model.
+  - Cross-domain acquisition filtering (e.g. "Top performing Coal cruisers by win rate on EU over the last 3 updates").
 - [ ] **Phase 6: PWA, Offline Caching & Final Polish**
 

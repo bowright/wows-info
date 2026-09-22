@@ -358,3 +358,86 @@ export interface ShortageCalculationResult {
   daysToGoalWithSteel: number;
 }
 
+export type StatsServer = 'eu' | 'com' | 'asia';
+export type StatsTimespan = '1' | '3' | '12' | 'all';
+export type SkillBracket = 'all' | 'low' | 'medium' | 'high' | 'top1';
+
+export interface ShipStatMetrics {
+  battles: number;
+  winRate: number; // e.g. 52.4 (%)
+  avgDamage: number;
+  avgFrags: number;
+  survivalRate: number; // e.g. 38.5 (%)
+  avgXp: number;
+  spottingDamage: number;
+  potentialDamage: number;
+  planesDowned: number;
+  pr?: number;
+
+  // Battle-weighted raw accumulators
+  wins: number;
+  damage: number;
+  frags: number;
+  survived: number; // surv
+  xp: number;
+  spotting: number; // spot
+  potential: number; // pot
+  planes: number; // aa
+}
+
+export interface ShipServerStats extends ShipStatMetrics {
+  shipId: number;
+  name: string;
+  dispName: string;
+  tier: number;
+  class: ShipClass;
+  nation: string;
+  category: AcquisitionCategory;
+  expectedDamage: number;
+  expectedWinRate: number;
+  expectedFrags: number;
+  brackets?: Record<SkillBracket, ShipStatMetrics>;
+}
+
+export interface StatsChunkData {
+  server: StatsServer | string;
+  span: StatsTimespan | string;
+  updatedAt: string;
+  totalShips: number;
+  stats: ShipServerStats[];
+}
+
+export interface AggregateMetrics {
+  totalBattles: number;
+  totalShips: number;
+  winRate: number;
+  avgDamage: number;
+  fragRate: number;
+  survivalRate: number;
+  avgXp: number;
+  spottingDamage: number;
+  potentialDamage: number;
+  planesDowned: number;
+  avgPr: number;
+}
+
+export type PRTierId =
+  | 'below_average'
+  | 'average'
+  | 'good'
+  | 'very_good'
+  | 'great'
+  | 'unicum'
+  | 'super_unicum';
+
+export interface PRTierInfo {
+  id: PRTierId;
+  label: string;
+  min: number;
+  max: number | null;
+  hex: string;
+  textClass: string;
+  bgClass: string;
+  borderClass: string;
+}
+
