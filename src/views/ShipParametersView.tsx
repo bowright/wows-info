@@ -17,6 +17,13 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
   const ships = useShipStore((state) => state.ships);
   const isLoading = useShipStore((state) => state.isLoading);
   const error = useShipStore((state) => state.error);
+  const searchQuery = useShipStore((state) => state.searchQuery);
+  const selectedNations = useShipStore((state) => state.selectedNations);
+  const selectedTiers = useShipStore((state) => state.selectedTiers);
+  const selectedClasses = useShipStore((state) => state.selectedClasses);
+  const selectedAcquisitions = useShipStore((state) => state.selectedAcquisitions);
+  const hideClones = useShipStore((state) => state.hideClones);
+  const useTopModules = useShipStore((state) => state.useTopModules);
   const activePreset = useShipStore((state) => state.activePreset);
   const applyCoupons = useShipStore((state) => state.applyCoupons);
   const activeBuild = useShipStore((state) => state.activeBuild);
@@ -44,12 +51,20 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
     return count;
   }, [activeBuild]);
 
-  // Retrieve filtered and modified ships
+  // Retrieve filtered and modified ships reactively
   const filteredShips = useMemo(() => {
     return getFilteredShips();
   }, [
     getFilteredShips,
-    // Note: getFilteredShips is reactive to store state
+    ships,
+    searchQuery,
+    selectedNations,
+    selectedTiers,
+    selectedClasses,
+    selectedAcquisitions,
+    hideClones,
+    useTopModules,
+    activeBuild,
   ]);
 
   if (isLoading && ships.length === 0) {
