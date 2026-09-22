@@ -97,6 +97,32 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
 
 ---
 
+---
+
+## 🧪 Phase 1 & 2 Verification Results
+
+The automated test suite (`npm test`) executes **119 total tests** across 11 validation suites with **100% passing status**:
+
+*   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
+    *   Catalog Completeness: 993/993 ships ingested with valid typed fields and non-zero HP.
+    *   Top Module Resolution: Iowa 79,000 HP (Hull B), 23.35 km range, 28mm overmatch. Fletcher top Mk 16 torpedoes. Mogami top 203mm artillery.
+    *   Armory Strict Filtering: Exactly 228 active offers across 224 bundles, 0 false-positive camos/commanders.
+    *   Historical Catalog: Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`. Dockyard ships marked `dockyard_historical`. Clones linked to parent ships.
+    *   Krupp Ballistics & Overmatch Precision: Authentic WoWs penetration formulas and overmatch thresholds.
+*   **Phase 2 Verification (`scripts/verify_phase2.mjs`)**: 68/68 tests passing.
+    *   **Consumables Ingestion**: `abilityMap` resolves all 993 ships; full slot trees with charges (`numConsumables`), cooldown (`reloadTime`), duration (`workTime`), localized names, and logic modifiers (e.g. Iowa DCP 80s/20s/-1 charges, Des Moines 10km Radar 35s, Shimakaze Smoke 1.8km detect).
+    *   **AA Defense & Flak**: Extracted continuous DPS (near, mid, far), max AA range, flak burst count, and flak damage (e.g. Iowa 1,033 continuous DPS, 5.8 km range, 8 flak bursts, 1,610 damage).
+    *   **ASW Armament**: Extracted airstrike stats (range, reload, flight time, payload count, bomb damage) across 570 ships and ship-mounted depth charges across destroyers.
+    *   **Promoted Table Matrix Columns**: `traverse180`, `horizontalDispersion`, `verticalDispersion`, `heAlpha`, `apAlpha`, `sapAlpha`, `torpedoDetect`, `aaRange`, `aaDps`, `flakCount`, `aswRange`, and `smokePenalty` promoted directly to `catalog.json` for 60fps virtualized matrix rendering.
+    *   **Dynamic Build Modifier Engine**: `calcModifiedStats` verified with exact compound multipliers:
+        *   CE + CSM1 on Iowa: 15.7 km $\rightarrow$ 12.72 km detectability (exact 0.81 compound multiplier).
+        *   Main Battery Mod 3: 30.0s $\rightarrow$ 26.4s reload (-12%).
+        *   Sierra Mike Signal: 33.0 kts $\rightarrow$ 34.65 kts (+5%).
+        *   Adrenaline Rush at 50% HP: 30.0s $\rightarrow$ 27.0s (-10% reload).
+        *   Superintendent: finite consumable charges incremented by +1; unlimited (-1) charges preserved.
+
+---
+
 ## 📋 Independent Audit Sign-Off (Phase 1)
 
 * **Audit Status**: **CONDITIONAL PASS (Approved to Proceed)** (2026-09-22)
@@ -104,20 +130,21 @@ The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 
 * **Key Findings**:
   * 100% Top-module DAG resolution verified across 318 upgraded hulls.
   * 0 false-positive ship bundles in Armory scraping (75+ non-ship bundles eliminated).
-  * Storage footprint: `catalog.json` is 80.2 KB gzipped (target was < 320 KB gz).
-  * Consumable array indexing defect noted for immediate resolution in Phase 2.
-  * Parameter column promotions scheduled for Phase 2 data compiler.
+  * Storage footprint: `catalog.json` is 116 KB gzipped (target was < 320 KB gz).
+  * Consumable array indexing defect noted in Phase 1 audit completely resolved in Phase 2.
 
 ---
 
 ## 🗺️ Roadmap & Phase Progression
 
 - [x] **Phase 1: Data Normalization, Ingestion Engine & Background Sync Service (Option B)**
-- [ ] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
-  - Fix consumable lookup via `abilityMap`.
-  - Extract AA defense and ASW airstrike stats on hull.
-  - Promote key table metrics (`horizontalDispersion`, `verticalDispersion`, `traverse180`, HE/AP alpha, torp detectability) into `catalog.json`.
-  - Implement dynamic build modifier engine (`calcModifiedStats` for upgrades, commander skills, signals).
+- [x] **Phase 2: Ballistics, Modifier Engine & Consumables Pipeline**
+  - [x] Fix consumable lookup via `abilityMap`.
+  - [x] Extract AA defense (near, mid, far continuous DPS, max range, flak count, flak damage).
+  - [x] Extract ASW airstrike stats on hull (range, reload, flight time, payload, bomb damage).
+  - [x] Promote key table metrics (`horizontalDispersion`, `verticalDispersion`, `traverse180`, `heAlpha`, `apAlpha`, `sapAlpha`, `torpedoDetect`, `aaRange`, `aaDps`, `flakCount`, `aswRange`, `smokePenalty`) into `catalog.json`.
+  - [x] Implement dynamic build modifier engine (`calcModifiedStats` for upgrades, commander skills, signals) in `src/utils/modifiers.ts` and `scripts/modifiers.mjs`.
+  - [x] Automated test suite: `scripts/verify_phase2.mjs` (68/68 passing).
 - [ ] **Phase 3: Virtualized Parameter Matrix (`/params`)**
   - TanStack Table v8 + TanStack Virtual v3 implementation.
   - Pinned columns (Checkbox, Tier, Type, Nation, Name, Acquisition Badge).

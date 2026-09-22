@@ -139,13 +139,30 @@ export function parseGameParamsData() {
   const rawShips = Data.Ship || Data.default?.Ship || [];
   const rawProj = Data.Projectile || Data.default?.Projectile || [];
   const rawTrans = Data.Translation || Data.default?.Translation || {};
-  const rawAbilities = Data.Ability || Data.default?.Ability || {};
+  const rawAbilities = Data.Ability || Data.default?.Ability || [];
+  const rawAircraft = Data.Aircraft || Data.default?.Aircraft || [];
 
   // Build Projectile lookup map
   const projMap = new Map();
   for (const p of Object.values(rawProj)) {
     if (p && p.name) {
       projMap.set(p.name, p);
+    }
+  }
+
+  // Build Ability lookup map
+  const abilityMap = new Map();
+  for (const a of (Array.isArray(rawAbilities) ? rawAbilities : Object.values(rawAbilities))) {
+    if (a && a.name) {
+      abilityMap.set(a.name, a);
+    }
+  }
+
+  // Build Aircraft lookup map for ASW / AirSupport
+  const aircraftMap = new Map();
+  for (const a of (Array.isArray(rawAircraft) ? rawAircraft : Object.values(rawAircraft))) {
+    if (a && a.name) {
+      aircraftMap.set(a.name, a);
     }
   }
 
@@ -310,24 +327,124 @@ export function parseGameParamsData() {
       }
     }
 
-    // Consumables / Abilities
+    // Top Hull Upgrade components
+    const topHullUpgrade = Object.values(ship.ShipUpgradeInfo || {}).find(u => u.components?.hull?.includes(modules.top.hullKey));
+    const hullComp = topHullUpgrade?.components || {};
+
+    // AA Defense Extraction
+    const airDefenseKeys = hullComp.airDefense || [];
+    const atbaKeys = hullComp.atba || [];
+    const artKeys = hullComp.artillery || [];
+    const aaSourceKeys = new Set([...airDefenseKeys, ...atbaKeys, ...artKeys, modules.top.hullKey]);
+
+    let nearDps = 0, midDps = 0, farDps = 0;
+    let maxAaRange = 0;
+    let flakCount = 0;
+    let flakDamage = 0;
+    const auras = [];
+
+    for (const sk of aaSourceKeys) {
+      const obj = ship[sk];
+      if (!obj || typeof obj !== 'object') continue;
+      for (const [k, v] of Object.entries(obj)) {
+        if (!v || typeof v !== 'object') continue;
+        if (v.bubbleDamage > 0 || (v.innerBubbleCount != null && v.innerBubbleCount > 0)) {
+          flakCount += (v.innerBubbleCount || 0) + (v.outerBubbleCount || 0);
+          if (v.bubbleDamage > 0) flakDamage = Math.max(flakDamage, Math.round(v.bubbleDamage * 7));
+          if (v.maxDistance) maxAaRange = Math.max(maxAaRange, v.maxDistance / 1000);
+        } else if (['near', 'medium', 'far'].includes(v.type) && v.areaDamage != null) {
+          const period = v.areaDamagePeriod || 0.285714;
+          const dps = Math.round(v.areaDamage / period);
+          if (v.type === 'near') nearDps += dps;
+          else if (v.type === 'medium') midDps += dps;
+          else if (v.type === 'far') farDps += dps;
+          if (v.maxDistance) maxAaRange = Math.max(maxAaRange, v.maxDistance / 1000);
+          auras.push({
+            type: v.type,
+            dps,
+            rangeKm: v.maxDistance ? Math.round((v.maxDistance / 1000) * 10) / 10 : 0,
+            hitChance: v.hitChance != null ? Math.round(v.hitChance * 100) / 100 : 1
+          });
+        }
+      }
+    }
+
+    const totalAaDps = nearDps + midDps + farDps;
+    const aaRangeKm = maxAaRange > 0 ? Math.round(maxAaRange * 10) / 10 : null;
+    const aaData = totalAaDps > 0 || flakCount > 0 ? {
+      nearDps,
+      mediumDps: midDps,
+      farDps,
+      totalDps: totalAaDps,
+      maxRange: aaRangeKm,
+      flakCount,
+      flakDamage,
+      auras
+    } : null;
+
+    // ASW Airstrike & Depth Charge Extraction
+    let aswData = null;
+    const supportKey = hullComp.airSupport?.[0];
+    const supportObj = supportKey ? ship[supportKey] : Object.values(ship).find(v => v && v.chargesNum != null && v.maxDist != null);
+    if (supportObj && supportObj.maxDist != null) {
+      const maxDistKm = Math.round((supportObj.maxDist / 1000) * 10) / 10;
+      const reload = supportObj.reloadTime || 30;
+      const planeName = supportObj.ammoList?.[0];
+      const plane = planeName ? aircraftMap.get(planeName) : null;
+      const payloadCount = (plane?.attackerSize || 1) * (plane?.attackCount || 1) * (plane?.projectilesPerAttack || 1);
+      const speed = plane?.speedMoveWithBomb || 200;
+      const flightTime = Math.round(((supportObj.maxDist / (speed * 2.6))) * 10) / 10;
+      const bomb = plane?.bombName ? projMap.get(plane.bombName) : null;
+      const bombDamage = bomb?.alphaDamage || bomb?.damage || 0;
+      aswData = {
+        type: 'airstrike',
+        rangeKm: maxDistKm,
+        reloadTime: reload,
+        flightTime,
+        payloadCount,
+        bombDamage,
+        chargesNum: supportObj.chargesNum || 2
+      };
+    } else if (hullComp.depthCharges?.[0] && ship[hullComp.depthCharges[0]]) {
+      const dc = ship[hullComp.depthCharges[0]];
+      aswData = {
+        type: 'depth_charges',
+        rangeKm: 0.5,
+        reloadTime: dc.reloadTime || 40,
+        flightTime: 0,
+        payloadCount: 2,
+        bombDamage: 2000,
+        chargesNum: dc.maxPacks || 2
+      };
+    }
+
+    // Consumables / Abilities Extraction
     const abilities = [];
     const shipAbilities = ship.ShipAbilities || {};
     for (const [slotKey, slotData] of Object.entries(shipAbilities)) {
       if (!slotData || !slotData.abils) continue;
+      const slotIndex = parseInt(slotKey.replace('AbilitySlot', ''), 10) || 0;
       for (const abilEntry of slotData.abils) {
         const abilName = abilEntry[0];
-        const abilObj = rawAbilities[abilName];
-        if (abilObj) {
-          abilities.push({
-            slot: slotKey,
-            key: abilName,
-            type: abilObj.abilityType || abilObj.type || 'Consumable',
-            numConsumables: abilObj.numConsumables || 3,
-            reloadTime: abilObj.reloadTime || 120,
-            workTime: abilObj.workTime || 30
-          });
-        }
+        const variantName = abilEntry[1];
+        const abil = abilityMap.get(abilName);
+        if (!abil) continue;
+        const variantObj = (variantName && abil[variantName]) ? abil[variantName] : abil;
+
+        abilities.push({
+          slot: slotKey,
+          slotIndex,
+          key: abilName,
+          variant: variantName || '',
+          type: variantObj.consumableType || variantObj.abilityType || 'Consumable',
+          name: tr(variantObj.NAME) || tr(abil.NAME) || abilName,
+          description: tr(variantObj.DESC) || tr(abil.DESC) || '',
+          numConsumables: variantObj.numConsumables != null ? variantObj.numConsumables : 3,
+          reloadTime: variantObj.reloadTime != null ? variantObj.reloadTime : 120,
+          workTime: variantObj.workTime != null ? variantObj.workTime : 30,
+          preparationTime: variantObj.preparationTime || 0,
+          logic: variantObj.logic || null
+        });
       }
     }
 
@@ -352,12 +469,30 @@ export function parseGameParamsData() {
       concealmentSurface,
       concealmentAir,
       concealmentSmoke,
+      smokePenalty: concealmentSmoke ?? null,
+
+      // Promoted scalar columns for 60fps virtualized table
+      traverse180: artilleryData?.traverse180 ?? null,
+      horizontalDispersion: artilleryData?.horizontalDispersion ?? null,
+      verticalDispersion: artilleryData?.verticalDispersion ?? null,
+      heAlpha: artilleryData?.he?.damage ?? null,
+      apAlpha: artilleryData?.ap?.damage ?? null,
+      sapAlpha: artilleryData?.sap?.damage ?? null,
+      torpedoDetect: torpedoData?.detectabilityKm ?? null,
+      aaRange: aaRangeKm,
+      aaDps: totalAaDps > 0 ? totalAaDps : null,
+      flakCount: flakCount > 0 ? flakCount : null,
+      aswRange: aswData ? aswData.rangeKm : null,
+
       artillery: artilleryData ? {
         caliberMm: artilleryData.caliberMm,
         totalBarrels: artilleryData.totalBarrels,
         reload: artilleryData.reload,
+        traverse180: artilleryData.traverse180,
         rangeKm: artilleryData.rangeKm,
         sigma: artilleryData.sigma,
+        horizontalDispersion: artilleryData.horizontalDispersion,
+        verticalDispersion: artilleryData.verticalDispersion,
         heDpm: artilleryData.he?.dpm || 0,
         apDpm: artilleryData.ap?.dpm || 0,
         sapDpm: artilleryData.sap?.dpm || 0,
@@ -369,7 +504,18 @@ export function parseGameParamsData() {
         rangeKm: torpedoData.rangeKm,
         speed: torpedoData.speed,
         damage: torpedoData.damage,
-        reload: torpedoData.reload
+        reload: torpedoData.reload,
+        detectabilityKm: torpedoData.detectabilityKm
+      } : null,
+      aa: aaData ? {
+        maxRange: aaData.maxRange,
+        totalDps: aaData.totalDps,
+        flakCount: aaData.flakCount
+      } : null,
+      asw: aswData ? {
+        type: aswData.type,
+        rangeKm: aswData.rangeKm,
+        reloadTime: aswData.reloadTime
       } : null
     };
     catalog.push(catalogItem);
@@ -381,6 +527,8 @@ export function parseGameParamsData() {
       resolvedModules: modules,
       artilleryFull: artilleryData,
       torpedoesFull: torpedoData,
+      aa: aaData,
+      asw: aswData,
       consumables: abilities
     };
     detailsMap.set(shipId, detailsItem);

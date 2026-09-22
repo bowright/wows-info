@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source not "../public";
+@source not "../scratch";
+@source not "../dist";
 
 :root {
   color-scheme: dark;

@@ -66,15 +66,36 @@ export interface CompactShipCatalogItem {
   concealmentSurface: number | null;
   concealmentAir: number | null;
   concealmentSmoke: number | null;
+  smokePenalty: number | null;
+
+  // Promoted scalar columns for 60fps virtualized matrix
+  traverse180: number | null;
+  horizontalDispersion: number | null;
+  verticalDispersion: number | null;
+  heAlpha: number | null;
+  apAlpha: number | null;
+  sapAlpha: number | null;
+  torpedoDetect: number | null;
+  aaRange: number | null;
+  aaDps: number | null;
+  flakCount: number | null;
+  aswRange: number | null;
+
   artillery: {
     caliberMm: number;
     totalBarrels: number;
     reload: number;
+    traverse180?: number;
     rangeKm: number;
     sigma: number;
+    horizontalDispersion?: number;
+    verticalDispersion?: number;
     heDpm: number;
     apDpm: number;
     sapDpm: number;
+    heAlpha?: number;
+    apAlpha?: number;
+    sapAlpha?: number;
     fireChance: number;
     overmatchMm: number;
   } | null;
@@ -84,6 +105,17 @@ export interface CompactShipCatalogItem {
     speed: number;
     damage: number;
     reload: number;
+    detectabilityKm?: number;
+  } | null;
+  aa?: {
+    maxRange: number;
+    totalDps: number;
+    flakCount: number;
+  } | null;
+  asw?: {
+    type: 'airstrike' | 'depth_charges';
+    rangeKm: number;
+    reloadTime: number;
   } | null;
   acquisition?: {
     category: AcquisitionCategory;
@@ -126,6 +158,47 @@ export interface ShellBallisticsSummary {
   curve?: BallisticsPoint[];
 }
 
+export interface ConsumableItem {
+  slot: string;
+  slotIndex: number;
+  key: string;
+  variant: string;
+  type: string;
+  name: string;
+  description: string;
+  numConsumables: number;
+  reloadTime: number;
+  workTime: number;
+  preparationTime: number;
+  logic?: any;
+}
+
+export interface AAData {
+  nearDps: number;
+  mediumDps: number;
+  farDps: number;
+  totalDps: number;
+  maxRange: number;
+  flakCount: number;
+  flakDamage: number;
+  auras: Array<{
+    type: 'near' | 'medium' | 'far';
+    dps: number;
+    rangeKm: number;
+    hitChance: number;
+  }>;
+}
+
+export interface ASWData {
+  type: 'airstrike' | 'depth_charges';
+  rangeKm: number;
+  reloadTime: number;
+  flightTime: number;
+  payloadCount: number;
+  bombDamage: number;
+  chargesNum?: number;
+}
+
 export interface ShipDetailData extends Omit<CompactShipCatalogItem, 'acquisition'> {
   description: string;
   resolvedModules: {
@@ -146,14 +219,53 @@ export interface ShipDetailData extends Omit<CompactShipCatalogItem, 'acquisitio
   };
   artilleryFull?: object | null;
   torpedoesFull?: object | null;
-  consumables: Array<{
-    slot: string;
-    key: string;
-    type: string;
-    numConsumables: number;
-    reloadTime: number;
-    workTime: number;
-  }>;
+  aa: AAData | null;
+  asw: ASWData | null;
+  consumables: ConsumableItem[];
   acquisition: ShipAcquisitionData | null;
   ballistics?: ShellBallisticsSummary | null;
 }
+
+export interface ShipBuild {
+  upgrades?: {
+    slot1?: string | null;
+    slot2?: string | null;
+    slot3?: string | null;
+    slot4?: string | null;
+    slot5?: string | null;
+    slot6?: string | null;
+  };
+  skills?: {
+    concealmentExpert?: boolean;
+    adrenalineRush?: boolean;
+    hpLostPercent?: number; // 0 to 100
+    heavyAP?: boolean;
+    heavyHE?: boolean;
+    survivabilityExpert?: boolean;
+    greaseTheGears?: boolean;
+    swiftInSilence?: boolean;
+    superintendent?: boolean;
+    [key: string]: any;
+  };
+  signals?: {
+    sierraMike?: boolean;
+    indiaYankee?: boolean;
+    julietYankeeBissotwo?: boolean;
+    victorLima?: boolean;
+    indiaXRay?: boolean;
+    mikeYankeeSoxisix?: boolean;
+    [key: string]: boolean | undefined;
+  };
+}
+
+export interface AppliedModifier {
+  source: string;
+  category: 'upgrade' | 'skill' | 'signal';
+  description: string;
+}
+
+export type ModifiedShipStats = CompactShipCatalogItem & {
+  modifiersApplied: AppliedModifier[];
+  burnTime?: number;
+  floodTime?: number;
+};

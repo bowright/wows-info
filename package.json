@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "sync": "node scripts/build_data.mjs",
-    "test": "node scripts/verify_phase1.mjs",
+    "test": "node scripts/verify_phase1.mjs && node scripts/verify_phase2.mjs",
+    "test:phase1": "node scripts/verify_phase1.mjs",
+    "test:phase2": "node scripts/verify_phase2.mjs",
     "start": "node server/sync_service.mjs"
   },
   "dependencies": {
