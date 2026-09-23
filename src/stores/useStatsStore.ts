@@ -31,8 +31,8 @@ export interface StatsFilters {
   selectedServer: StatsServer;
   selectedSpan: StatsTimespan;
   selectedBracket: SkillBracket;
-  selectedTiers: number[];
-  selectedClasses: ShipClass[];
+  selectedTiers: number[] | null;
+  selectedClasses: ShipClass[] | null;
   selectedAcquisition: string; // 'All' | 'Coal' | 'Steel' | ...
   searchQuery: string;
 }
@@ -49,9 +49,13 @@ export interface StatsStoreState extends StatsFilters {
   setServer: (server: StatsServer | 'na') => Promise<void>;
   setSpan: (span: StatsTimespan) => Promise<void>;
   setBracket: (bracket: SkillBracket) => void;
-  setSelectedTiers: (tiers: number[]) => void;
+  setSelectedTiers: (tiers: number[] | null) => void;
+  selectAllTiers: () => void;
+  clearTiers: () => void;
   toggleTier: (tier: number) => void;
-  setSelectedClasses: (classes: ShipClass[]) => void;
+  setSelectedClasses: (classes: ShipClass[] | null) => void;
+  selectAllClasses: () => void;
+  clearClasses: () => void;
   toggleShipClass: (shipClass: ShipClass) => void;
   setSelectedAcquisition: (category: string) => void;
   setSearchQuery: (query: string) => void;
@@ -219,8 +223,8 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
   selectedServer: 'eu',
   selectedSpan: '1',
   selectedBracket: 'all',
-  selectedTiers: [],
-  selectedClasses: [],
+  selectedTiers: null,
+  selectedClasses: null,
   selectedAcquisition: 'All',
   searchQuery: '',
 
@@ -249,23 +253,39 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
 
   setSelectedTiers: (tiers) => set({ selectedTiers: tiers }),
 
+  selectAllTiers: () => set({ selectedTiers: null }),
+
+  clearTiers: () => set({ selectedTiers: [] }),
+
   toggleTier: (tier) => {
     const current = get().selectedTiers;
-    if (current.includes(tier)) {
-      set({ selectedTiers: current.filter((t) => t !== tier) });
+    if (current === null) {
+      set({ selectedTiers: [tier] });
+    } else if (current.includes(tier)) {
+      const next = current.filter((t) => t !== tier);
+      set({ selectedTiers: next });
     } else {
-      set({ selectedTiers: [...current, tier].sort((a, b) => a - b) });
+      const next = [...current, tier].sort((a, b) => a - b);
+      set({ selectedTiers: next.length === 11 ? null : next });
     }
   },
 
   setSelectedClasses: (classes) => set({ selectedClasses: classes }),
 
+  selectAllClasses: () => set({ selectedClasses: null }),
+
+  clearClasses: () => set({ selectedClasses: [] }),
+
   toggleShipClass: (shipClass) => {
     const current = get().selectedClasses;
-    if (current.includes(shipClass)) {
-      set({ selectedClasses: current.filter((c) => c !== shipClass) });
+    if (current === null) {
+      set({ selectedClasses: [shipClass] });
+    } else if (current.includes(shipClass)) {
+      const next = current.filter((c) => c !== shipClass);
+      set({ selectedClasses: next });
     } else {
-      set({ selectedClasses: [...current, shipClass] });
+      const next = [...current, shipClass];
+      set({ selectedClasses: next.length === 5 ? null : next });
     }
   },
 
@@ -276,8 +296,8 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
   resetFilters: () =>
     set({
       selectedBracket: 'all',
-      selectedTiers: [],
-      selectedClasses: [],
+      selectedTiers: null,
+      selectedClasses: null,
       selectedAcquisition: 'All',
       searchQuery: '',
     }),
@@ -366,12 +386,12 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
     return currentStats
       .filter((ship) => {
         // Tier filter
-        if (selectedTiers.length > 0 && !selectedTiers.includes(ship.tier)) {
+        if (selectedTiers !== null && !selectedTiers.includes(ship.tier)) {
           return false;
         }
 
         // Class filter
-        if (selectedClasses.length > 0 && !selectedClasses.includes(ship.class)) {
+        if (selectedClasses !== null && !selectedClasses.includes(ship.class)) {
           return false;
         }
 

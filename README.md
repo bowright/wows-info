@@ -148,7 +148,14 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
 
 ---
 
-## 📋 Independent Audit Sign-Off (Phases 1, 2, 3, 4, 5 & 6)
+*   **Filter Controls Enhancement (`scripts/verify_filter_controls.mjs`)**: 74/74 tests passing.
+    *   **Armory & Acquisition Sub-Filters (`/armory`)**: Added dedicated `Select All` and `None` toggle buttons for Tier (I to ★), Class (DD, CA, BB, CV, SS), Nation (all 13 nations), and Acquisition Source (Coal, Steel, Doubloons, Research Bureau, Dockyard, Removed, Event Tokens).
+    *   **Server Statistics Full Tier Coverage (`/stats`)**: Expanded the Tier filter from previously hardcoded VIII-only tiers (`[8, 9, 10, 11]`) to cover all 11 tiers (`[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`), complemented by `Select All` and `None` controls for Tiers and Ship Classes.
+    *   **Filter State Precision (`null` vs `[]`)**: Intuitive tri-state filter modeling (`null` = all active, `[]` = none active, `[...]` = isolated subset).
+
+---
+
+## 📋 Independent Audit Sign-Off (Phases 1–6 & Enhancements)
 
 * **Phase 1 Audit Status**: **CONDITIONAL PASS (Approved)** (2026-09-22)
 * **Phase 2 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
@@ -156,14 +163,17 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
 * **Phase 4 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 5 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 6 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-23)
-* **Auditor**: Independent Phase 6 Reviewer
-* **Key Findings (Phase 6)**:
+* **Filter Controls & Full Tier Range**: **PASS (Verified)** (2026-09-23)
+* **Auditor**: Independent Reviewer
+* **Key Findings**:
   * Full PWA offline caching (`manifest.json`, `sw.js` with Stale-While-Revalidate for `/data/` and Cache-First for static assets).
   * Real-time network detection hook and offline status banner in `Header.tsx`.
   * Enhanced 4-way Ship Duel Matrix across 8 domains with directional advantage highlighting.
   * Interactive SVG Krupp AP ballistics chart plotting penetration, flight time, velocity, and impact angles across 0–25 km.
+  * Dedicated Select All / None controls for Tier, Class, Nation, and Source in Armory & Acquisition view.
+  * Complete 11-tier coverage (Tiers I–XI) on Server Statistics view with All/None buttons.
   * Executable one-command quick launch orchestrator (`start.sh` / `npm start`).
-  * Grand Total: **1,138 / 1,138 passing tests (100% pass rate)**; clean production build.
+  * Grand Total: **1,212 / 1,212 passing tests (100% pass rate)**; clean production build.
 
 ---
 
@@ -175,8 +185,9 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
 - [x] **Phase 4: Acquisition Center & Resource Planner (`/armory`)**
 - [x] **Phase 5: Server Statistics View (`/stats`) & Personal Rating Engine**
 - [x] **Phase 6: PWA, Offline Caching, Polish & One-Command Launch**
-  - Progressive Web App (PWA) manifest and Service Worker offline caching.
-  - Offline resilience testing (verifying 100% functionality without internet connection).
-  - Quick launch script (`./start.sh` or `npm start`) orchestrating Vite preview and Option B sync service.
-  - Comprehensive end-to-end integration and documentation updates.
+- [x] **Enhancement: Select All/None Filter Controls & Full Tier Coverage (Tiers I–XI)**
+  - Select All / None toggles for Tier, Class, Nation, and Source on `/armory`.
+  - Full Tier I–XI filter expansion and All/None controls on `/stats`.
+  - Verification suite `verify_filter_controls.mjs` (74 automated tests).
+
 

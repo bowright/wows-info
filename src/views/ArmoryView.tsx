@@ -22,6 +22,7 @@ import {
   CheckSquare,
   Square,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 
 interface ArmoryViewProps {
@@ -66,6 +67,29 @@ const NATION_LABELS: Record<string, string> = {
   spain: 'Spain',
 };
 
+export function getOfferSource(
+  offer: { currency: string },
+  catalogShip?: { acquisition?: { category?: string } }
+): string {
+  if (offer.currency === 'coal') return 'Coal';
+  if (offer.currency === 'steel') return 'Steel';
+  if (offer.currency === 'gold') return 'Doubloons';
+  if (offer.currency === 'paragon_xp') return 'Research Bureau';
+  if (offer.currency && offer.currency.startsWith('eventum')) return 'Event Tokens';
+  if (catalogShip?.acquisition?.category) return catalogShip.acquisition.category;
+  return 'Other';
+}
+
+const ARMORY_SOURCE_CONFIG: Array<{ id: string; label: string; color: string }> = [
+  { id: 'Coal', label: 'Coal', color: 'text-amber-400 border-amber-500/40 bg-amber-500/10' },
+  { id: 'Steel', label: 'Steel', color: 'text-cyan-400 border-cyan-500/40 bg-cyan-500/10' },
+  { id: 'Doubloons', label: 'Doubloons', color: 'text-yellow-400 border-yellow-500/40 bg-yellow-500/10' },
+  { id: 'Research Bureau', label: 'Research Bureau', color: 'text-rose-400 border-rose-500/40 bg-rose-500/10' },
+  { id: 'Dockyard', label: 'Dockyard', color: 'text-orange-400 border-orange-500/40 bg-orange-500/10' },
+  { id: 'Removed', label: 'Removed', color: 'text-red-400 border-red-500/40 bg-red-500/10' },
+  { id: 'Event Tokens', label: 'Event Tokens', color: 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10' },
+];
+
 export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
   const armoryData = useArmoryStore((state) => state.armoryData);
   const isArmoryLoading = useArmoryStore((state) => state.isLoading);
@@ -82,11 +106,25 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
 
   const selectedTiers = useArmoryStore((state) => state.selectedTiers);
   const toggleTier = useArmoryStore((state) => state.toggleTier);
+  const selectAllTiers = useArmoryStore((state) => state.selectAllTiers);
   const clearTiers = useArmoryStore((state) => state.clearTiers);
 
   const selectedClasses = useArmoryStore((state) => state.selectedClasses);
   const toggleShipClass = useArmoryStore((state) => state.toggleShipClass);
+  const selectAllClasses = useArmoryStore((state) => state.selectAllClasses);
   const clearClasses = useArmoryStore((state) => state.clearClasses);
+
+  const selectedNations = useArmoryStore((state) => state.selectedNations);
+  const toggleNation = useArmoryStore((state) => state.toggleNation);
+  const selectAllNations = useArmoryStore((state) => state.selectAllNations);
+  const clearNations = useArmoryStore((state) => state.clearNations);
+
+  const selectedSources = useArmoryStore((state) => state.selectedSources);
+  const toggleSource = useArmoryStore((state) => state.toggleSource);
+  const selectAllSources = useArmoryStore((state) => state.selectAllSources);
+  const clearSources = useArmoryStore((state) => state.clearSources);
+
+  const resetArmoryFilters = useArmoryStore((state) => state.resetFilters);
 
   const sortOption = useArmoryStore((state) => state.sortOption);
   const setSortOption = useArmoryStore((state) => state.setSortOption);
@@ -156,7 +194,7 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
     }
 
     // Tiers
-    if (selectedTiers.length > 0) {
+    if (selectedTiers !== null) {
       list = list.filter((o) => {
         const cat = catalogMap.get(o.shipId);
         const tier = cat?.tier || o.level;
@@ -165,11 +203,29 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
     }
 
     // Classes
-    if (selectedClasses.length > 0) {
+    if (selectedClasses !== null) {
       list = list.filter((o) => {
         const cat = catalogMap.get(o.shipId);
         const cls = cat?.class || o.shipClass;
         return selectedClasses.includes(cls);
+      });
+    }
+
+    // Nations
+    if (selectedNations !== null) {
+      list = list.filter((o) => {
+        const cat = catalogMap.get(o.shipId);
+        const nation = cat?.nation || o.nation;
+        return nation ? selectedNations.includes(nation) : false;
+      });
+    }
+
+    // Sources
+    if (selectedSources !== null) {
+      list = list.filter((o) => {
+        const cat = catalogMap.get(o.shipId);
+        const src = getOfferSource(o, cat);
+        return selectedSources.includes(src);
       });
     }
 
@@ -195,7 +251,17 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
       }
       return 0;
     });
-  }, [tabOffers, searchQuery, selectedTiers, selectedClasses, sortOption, globalApplyCoupons, catalogMap]);
+  }, [
+    tabOffers,
+    searchQuery,
+    selectedTiers,
+    selectedClasses,
+    selectedNations,
+    selectedSources,
+    sortOption,
+    globalApplyCoupons,
+    catalogMap,
+  ]);
 
   // Coal offers for Shortage Calculator
   const coalOffers = useMemo(() => {
@@ -210,11 +276,17 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((s) => s.dispName.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     }
-    if (selectedTiers.length > 0) {
+    if (selectedTiers !== null) {
       list = list.filter((s) => selectedTiers.includes(s.tier));
     }
-    if (selectedClasses.length > 0) {
+    if (selectedClasses !== null) {
       list = list.filter((s) => selectedClasses.includes(s.class));
+    }
+    if (selectedNations !== null) {
+      list = list.filter((s) => selectedNations.includes(s.nation));
+    }
+    if (selectedSources !== null && !selectedSources.includes('Removed')) {
+      return [];
     }
 
     return [...list].sort((a, b) => {
@@ -222,7 +294,7 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
       if (sortOption === 'tier-asc') return a.tier - b.tier;
       return a.dispName.localeCompare(b.dispName);
     });
-  }, [searchQuery, selectedTiers, selectedClasses, sortOption]);
+  }, [searchQuery, selectedTiers, selectedClasses, selectedNations, selectedSources, sortOption]);
 
   // Filtered Dockyard ships
   const visibleDockyards = useMemo(() => {
@@ -232,11 +304,17 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((s) => s.dispName.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
     }
-    if (selectedTiers.length > 0) {
+    if (selectedTiers !== null) {
       list = list.filter((s) => selectedTiers.includes(s.tier));
     }
-    if (selectedClasses.length > 0) {
+    if (selectedClasses !== null) {
       list = list.filter((s) => selectedClasses.includes(s.class));
+    }
+    if (selectedNations !== null) {
+      list = list.filter((s) => selectedNations.includes(s.nation));
+    }
+    if (selectedSources !== null && !selectedSources.includes('Dockyard')) {
+      return [];
     }
 
     return [...list].sort((a, b) => {
@@ -246,7 +324,7 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
       if (sortOption === 'price-desc') return b.minDoubloonsRequired - a.minDoubloonsRequired;
       return b.eventYear - a.eventYear;
     });
-  }, [searchQuery, selectedTiers, selectedClasses, sortOption]);
+  }, [searchQuery, selectedTiers, selectedClasses, selectedNations, selectedSources, sortOption]);
 
   const handleInspectShip = (shipDisplayName: string) => {
     resetShipFilters();
@@ -479,92 +557,247 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
 
       {/* 4. Sub-filters & Controls (Shown for deal tabs, removed, and dockyard) */}
       {activeTab !== 'calculator' && (
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-          <div className="flex items-center gap-2 flex-1 flex-wrap">
+        <div className="flex flex-col gap-3 bg-slate-900/70 p-4 rounded-xl border border-slate-800 shadow-sm">
+          {/* Top Row: Search Input + Sort Selector + Reset Filters */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <div className="relative flex-1 max-w-md">
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search ships..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/50 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                placeholder="Search ships by name..."
+                className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/50 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none transition"
               />
             </div>
 
-            {/* Tier Filters */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-              <span className="text-[10px] font-mono text-slate-500 px-1">Tier:</span>
-              {[5, 6, 7, 8, 9, 10, 11].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => toggleTier(t)}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition ${
-                    selectedTiers.includes(t)
-                      ? 'bg-amber-500 text-slate-950'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {TIER_ROMAN[t]}
-                </button>
-              ))}
-              {selectedTiers.length > 0 && (
-                <button
-                  onClick={clearTiers}
-                  className="px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-slate-300"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            {/* Sort Selector & Reset */}
+            <div className="flex items-center gap-2">
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as any)}
+                className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none"
+              >
+                <option value="tier-desc">Sort: Tier (High to Low)</option>
+                <option value="tier-asc">Sort: Tier (Low to High)</option>
+                <option value="price-asc">Sort: Price (Low to High)</option>
+                <option value="price-desc">Sort: Price (High to Low)</option>
+                <option value="name-asc">Sort: Name (A to Z)</option>
+              </select>
 
-            {/* Class Filters */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-              <span className="text-[10px] font-mono text-slate-500 px-1">Class:</span>
-              {(['Destroyer', 'Cruiser', 'Battleship', 'AirCarrier', 'Submarine'] as ShipClass[]).map(
-                (cls) => {
-                  const meta = CLASS_META[cls];
-                  const isSelected = selectedClasses.includes(cls);
-                  return (
-                    <button
-                      key={cls}
-                      onClick={() => toggleShipClass(cls)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition border ${
-                        isSelected
-                          ? `${meta.bg} ${meta.text} border-amber-500/40`
-                          : 'border-transparent text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {meta.abbr}
-                    </button>
-                  );
-                }
-              )}
-              {selectedClasses.length > 0 && (
+              {(searchQuery.trim().length > 0 ||
+                selectedTiers !== null ||
+                selectedClasses !== null ||
+                selectedNations !== null ||
+                selectedSources !== null) && (
                 <button
-                  onClick={clearClasses}
-                  className="px-1.5 py-0.5 text-[10px] text-slate-500 hover:text-slate-300"
+                  onClick={resetArmoryFilters}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 border border-rose-500/30 transition"
+                  title="Reset all sub-filters"
                 >
-                  Clear
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset</span>
                 </button>
               )}
             </div>
           </div>
 
-          {/* Sort Selector */}
-          <div className="flex items-center gap-2">
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as any)}
-              className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none"
-            >
-              <option value="tier-desc">Sort: Tier (High to Low)</option>
-              <option value="tier-asc">Sort: Tier (Low to High)</option>
-              <option value="price-asc">Sort: Price (Low to High)</option>
-              <option value="price-desc">Sort: Price (High to Low)</option>
-              <option value="name-asc">Sort: Name (A to Z)</option>
-            </select>
+          {/* Filter Rows: Tier, Class, Nation, Source */}
+          <div className="space-y-2.5 pt-2 border-t border-slate-800/80 text-xs">
+            {/* 1. Tier Filter */}
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">
+                Tier:
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={selectAllTiers}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedTiers === null
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={clearTiers}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedTiers !== null && selectedTiers.length === 0
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  None
+                </button>
+              </div>
+              <div className="h-4 w-px bg-slate-800 mx-0.5" />
+              <div className="flex items-center flex-wrap gap-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((t) => {
+                  const isSel = selectedTiers !== null && selectedTiers.includes(t);
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => toggleTier(t)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                        isSel
+                          ? 'bg-amber-500 text-slate-950 border-amber-400'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      {TIER_ROMAN[t]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Class Filter */}
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">
+                Class:
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={selectAllClasses}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedClasses === null
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={clearClasses}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedClasses !== null && selectedClasses.length === 0
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  None
+                </button>
+              </div>
+              <div className="h-4 w-px bg-slate-800 mx-0.5" />
+              <div className="flex items-center flex-wrap gap-1">
+                {(['Destroyer', 'Cruiser', 'Battleship', 'AirCarrier', 'Submarine'] as ShipClass[]).map((cls) => {
+                  const meta = CLASS_META[cls];
+                  const isSel = selectedClasses !== null && selectedClasses.includes(cls);
+                  return (
+                    <button
+                      key={cls}
+                      onClick={() => toggleShipClass(cls)}
+                      className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition border flex items-center gap-1 ${
+                        isSel
+                          ? `${meta.bg} ${meta.text} border-amber-500/40`
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      <span className="font-bold">{meta.abbr}</span>
+                      <span className="text-[10px] opacity-75 hidden sm:inline">{meta.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Nation Filter */}
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">
+                Nation:
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={selectAllNations}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedNations === null
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={clearNations}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedNations !== null && selectedNations.length === 0
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  None
+                </button>
+              </div>
+              <div className="h-4 w-px bg-slate-800 mx-0.5" />
+              <div className="flex items-center flex-wrap gap-1">
+                {Object.entries(NATION_LABELS).map(([nationKey, nationName]) => {
+                  const isSel = selectedNations !== null && selectedNations.includes(nationKey);
+                  return (
+                    <button
+                      key={nationKey}
+                      onClick={() => toggleNation(nationKey)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium transition border ${
+                        isSel
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      {nationName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 4. Source Filter */}
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider w-14 shrink-0">
+                Source:
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={selectAllSources}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedSources === null
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={clearSources}
+                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                    selectedSources !== null && selectedSources.length === 0
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                      : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                  }`}
+                >
+                  None
+                </button>
+              </div>
+              <div className="h-4 w-px bg-slate-800 mx-0.5" />
+              <div className="flex items-center flex-wrap gap-1">
+                {ARMORY_SOURCE_CONFIG.map((src) => {
+                  const isSel = selectedSources !== null && selectedSources.includes(src.id);
+                  return (
+                    <button
+                      key={src.id}
+                      onClick={() => toggleSource(src.id)}
+                      className={`px-2.5 py-0.5 rounded text-[11px] font-medium transition border ${
+                        isSel
+                          ? `${src.color} shadow-sm font-semibold`
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
+                      }`}
+                    >
+                      {src.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}

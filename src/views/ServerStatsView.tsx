@@ -123,7 +123,11 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     setSpan,
     setBracket,
     toggleTier,
+    selectAllTiers,
+    clearTiers,
     toggleShipClass,
+    selectAllClasses,
+    clearClasses,
     setSelectedAcquisition,
     setSearchQuery,
     resetFilters,
@@ -702,8 +706,31 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
           <div className="flex items-center gap-2 flex-wrap">
             {/* Ship Classes */}
             <div className="flex items-center gap-1">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-0.5">
+                Class:
+              </span>
+              <button
+                onClick={selectAllClasses}
+                className={`px-1.5 py-0.5 rounded text-xs font-bold transition border ${
+                  selectedClasses === null
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={clearClasses}
+                className={`px-1.5 py-0.5 rounded text-xs font-bold transition border ${
+                  selectedClasses !== null && selectedClasses.length === 0
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                    : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                }`}
+              >
+                None
+              </button>
               {(['Destroyer', 'Cruiser', 'Battleship', 'AirCarrier', 'Submarine'] as ShipClass[]).map((cls) => {
-                const isSel = selectedClasses.includes(cls);
+                const isSel = selectedClasses !== null && selectedClasses.includes(cls);
                 const cfg = CLASS_CONFIG[cls];
                 return (
                   <button
@@ -725,8 +752,31 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
 
             {/* Tiers */}
             <div className="flex items-center gap-1">
-              {[8, 9, 10, 11].map((t) => {
-                const isSel = selectedTiers.includes(t);
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-0.5">
+                Tier:
+              </span>
+              <button
+                onClick={selectAllTiers}
+                className={`px-1.5 py-0.5 rounded text-xs font-mono font-semibold transition border ${
+                  selectedTiers === null
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={clearTiers}
+                className={`px-1.5 py-0.5 rounded text-xs font-mono font-semibold transition border ${
+                  selectedTiers !== null && selectedTiers.length === 0
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                    : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                }`}
+              >
+                None
+              </button>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((t) => {
+                const isSel = selectedTiers !== null && selectedTiers.includes(t);
                 return (
                   <button
                     key={t}
@@ -746,8 +796,8 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
             {/* Reset Filters */}
             {(selectedAcquisition !== 'All' ||
               selectedBracket !== 'all' ||
-              selectedTiers.length > 0 ||
-              selectedClasses.length > 0 ||
+              selectedTiers !== null ||
+              selectedClasses !== null ||
               searchQuery) && (
               <button
                 onClick={resetFilters}

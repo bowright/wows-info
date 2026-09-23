@@ -20,6 +20,33 @@ export type ArmorySortOption =
 
 export type AffordabilityFilter = 'all' | 'coal' | 'steel' | 'shortage';
 
+export const ARMORY_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
+export const ARMORY_CLASSES = ['Destroyer', 'Cruiser', 'Battleship', 'AirCarrier', 'Submarine'] as const;
+export const ARMORY_NATIONS = [
+  'usa',
+  'japan',
+  'germany',
+  'ussr',
+  'uk',
+  'france',
+  'italy',
+  'pan_asia',
+  'europe',
+  'netherlands',
+  'commonwealth',
+  'pan_america',
+  'spain',
+] as const;
+export const ARMORY_SOURCES = [
+  'Coal',
+  'Steel',
+  'Doubloons',
+  'Research Bureau',
+  'Dockyard',
+  'Removed',
+  'Event Tokens',
+] as const;
+
 interface ArmoryStoreState {
   // Data
   armoryData: ArmoryMasterData | null;
@@ -45,12 +72,23 @@ interface ArmoryStoreState {
   // Sub-filters
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  selectedTiers: number[];
+  selectedTiers: number[] | null;
   toggleTier: (tier: number) => void;
+  selectAllTiers: () => void;
   clearTiers: () => void;
-  selectedClasses: string[];
+  selectedClasses: string[] | null;
   toggleShipClass: (cls: string) => void;
+  selectAllClasses: () => void;
   clearClasses: () => void;
+  selectedNations: string[] | null;
+  toggleNation: (nation: string) => void;
+  selectAllNations: () => void;
+  clearNations: () => void;
+  selectedSources: string[] | null;
+  toggleSource: (source: string) => void;
+  selectAllSources: () => void;
+  clearSources: () => void;
+  resetFilters: () => void;
   sortOption: ArmorySortOption;
   setSortOption: (option: ArmorySortOption) => void;
 
@@ -116,27 +154,78 @@ export const useArmoryStore = create<ArmoryStoreState>((set, get) => ({
   searchQuery: '',
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 
-  selectedTiers: [],
+  selectedTiers: null,
+  selectAllTiers: () => set({ selectedTiers: null }),
+  clearTiers: () => set({ selectedTiers: [] }),
   toggleTier: (tier: number) => {
     const current = get().selectedTiers;
-    if (current.includes(tier)) {
-      set({ selectedTiers: current.filter((t) => t !== tier) });
+    if (current === null) {
+      set({ selectedTiers: [tier] });
+    } else if (current.includes(tier)) {
+      const next = current.filter((t) => t !== tier);
+      set({ selectedTiers: next });
     } else {
-      set({ selectedTiers: [...current, tier].sort((a, b) => a - b) });
+      const next = [...current, tier].sort((a, b) => a - b);
+      set({ selectedTiers: next.length === ARMORY_TIERS.length ? null : next });
     }
   },
-  clearTiers: () => set({ selectedTiers: [] }),
 
-  selectedClasses: [],
+  selectedClasses: null,
+  selectAllClasses: () => set({ selectedClasses: null }),
+  clearClasses: () => set({ selectedClasses: [] }),
   toggleShipClass: (cls: string) => {
     const current = get().selectedClasses;
-    if (current.includes(cls)) {
-      set({ selectedClasses: current.filter((c) => c !== cls) });
+    if (current === null) {
+      set({ selectedClasses: [cls] });
+    } else if (current.includes(cls)) {
+      const next = current.filter((c) => c !== cls);
+      set({ selectedClasses: next });
     } else {
-      set({ selectedClasses: [...current, cls] });
+      const next = [...current, cls];
+      set({ selectedClasses: next.length === ARMORY_CLASSES.length ? null : next });
     }
   },
-  clearClasses: () => set({ selectedClasses: [] }),
+
+  selectedNations: null,
+  selectAllNations: () => set({ selectedNations: null }),
+  clearNations: () => set({ selectedNations: [] }),
+  toggleNation: (nation: string) => {
+    const current = get().selectedNations;
+    if (current === null) {
+      set({ selectedNations: [nation] });
+    } else if (current.includes(nation)) {
+      const next = current.filter((n) => n !== nation);
+      set({ selectedNations: next });
+    } else {
+      const next = [...current, nation];
+      set({ selectedNations: next.length === ARMORY_NATIONS.length ? null : next });
+    }
+  },
+
+  selectedSources: null,
+  selectAllSources: () => set({ selectedSources: null }),
+  clearSources: () => set({ selectedSources: [] }),
+  toggleSource: (source: string) => {
+    const current = get().selectedSources;
+    if (current === null) {
+      set({ selectedSources: [source] });
+    } else if (current.includes(source)) {
+      const next = current.filter((s) => s !== source);
+      set({ selectedSources: next });
+    } else {
+      const next = [...current, source];
+      set({ selectedSources: next.length === ARMORY_SOURCES.length ? null : next });
+    }
+  },
+
+  resetFilters: () =>
+    set({
+      searchQuery: '',
+      selectedTiers: null,
+      selectedClasses: null,
+      selectedNations: null,
+      selectedSources: null,
+    }),
 
   sortOption: 'tier-desc',
   setSortOption: (option: ArmorySortOption) => set({ sortOption: option }),
