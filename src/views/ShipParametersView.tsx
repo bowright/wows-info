@@ -149,7 +149,7 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
   }
 
   return (
-    <div className="flex-1 flex flex-col space-y-4 max-w-[1700px] w-full mx-auto p-4 sm:p-6 pb-24">
+    <div className="flex-1 flex flex-col space-y-4 w-full px-4 lg:px-6 py-4 pb-24">
       {/* Filter Controls Bar */}
       <FilterBar
         onOpenModifierDrawer={() => setIsModifierDrawerOpen(true)}

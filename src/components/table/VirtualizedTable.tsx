@@ -816,7 +816,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   }, []);
 
   return (
-    <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-xl flex flex-col h-[720px]">
+    <div className="w-full border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-xl flex flex-col h-[720px]">
       {/* Table Scroll Container */}
       <div
         ref={tableContainerRef}
