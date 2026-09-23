@@ -63,6 +63,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Bypass cache if no-store or cache-busting timestamp is explicitly requested
+  if (request.cache === 'no-store' || url.searchParams.has('_t')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // 1. Live API requests (/api/): Network-first with offline JSON fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(

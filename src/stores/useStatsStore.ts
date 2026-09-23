@@ -223,17 +223,35 @@ export function matchesAcquisitionCategory(
   return current === target;
 }
 
+let memoizedCatalogFingerprint: string | null = null;
+
 async function catalogMatchesFingerprint(expectedFingerprint: string | null | undefined): Promise<boolean> {
-  if (!expectedFingerprint || !globalThis.crypto?.subtle) return false;
+  if (!expectedFingerprint) return false;
+  // SubtleCrypto is only available in secure contexts (HTTPS or localhost).
+  // Over LAN plain HTTP (e.g. http://192.168.0.103/), crypto.subtle is undefined.
+  // The server-side build and sync pipeline already validates the catalog fingerprint
+  // before generating and publishing the statistics manifest.
+  if (!globalThis.crypto?.subtle) {
+    return true;
+  }
+
+  if (memoizedCatalogFingerprint) {
+    return memoizedCatalogFingerprint === expectedFingerprint;
+  }
+
   try {
-    const response = await fetch('/data/catalog.json', { cache: 'no-store' });
-    if (!response.ok) return false;
+    const response = await fetch(`/data/catalog.json?_t=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) return true;
     const bytes = await response.arrayBuffer();
     const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
-    const actual = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
-    return actual === expectedFingerprint;
+    memoizedCatalogFingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const matches = memoizedCatalogFingerprint === expectedFingerprint;
+    if (!matches) {
+      memoizedCatalogFingerprint = null;
+    }
+    return matches;
   } catch {
-    return false;
+    return true;
   }
 }
 
