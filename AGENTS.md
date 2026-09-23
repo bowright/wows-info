@@ -3,9 +3,25 @@
 ## Repository Overview
 **Project**: Local World of Warships Ship Information Platform (`wows-info`)  
 **Objective**: High-performance local web application delivering full feature parity with [shiptool.st](https://shiptool.st/) augmented with rich, real-time and historical **ship acquisition source data** (Coal, Steel, Doubloons, Research Bureau, Dockyards, Santa/Supercontainer exclusivity, and Tech Tree costs).  
-**Data Strategy**: **Option B (Hybrid Offline-First with Background Check & Sync)**. The application is completely operational offline using pre-compiled local JSON datasets under `public/data/`, but includes a background check service and a "Check for Updates" sync engine to fetch the latest Armory bundles and server statistics when online.
+**Data Strategy**: **Option B (Hybrid Offline-First with Background Check & Sync)**. The application is completely operational offline using pre-compiled local JSON datasets under `public/data/`, but includes a background check service and a "Check for Updates" sync engine to fetch the latest Armory bundles and server statistics when online.  
+**Default Production Deployment**: Hosted and served on the **`azuremsia` server** (`10.152.212.5`) under `/home/azureuser/wows-info`, managed via `systemd` (`wows-info.service`). Accessible across the local network (LAN) via the Raspberry Pi relay (`http://192.168.0.103/` and `http://192.168.0.103:5173/`).
 
 ---
+
+## Default Production Deployment (`azuremsia`) & LAN Access
+The canonical production host for `wows-info` is the **`azuremsia` server** (`10.152.212.5`):
+- **Server Path**: `/home/azureuser/wows-info`
+- **System Service**: `wows-info.service` (`/etc/systemd/system/wows-info.service`)
+- **Runtime**: Node.js v22 standalone Express engine (`PORT=5173 NODE_ENV=production node server/sync_service.mjs`), serving the compiled React bundle (`dist/`), SPA routing, dynamic datasets (`/data/*`), and Armory sync endpoints (`/api/*`).
+- **LAN Access via Raspberry Pi Relay (`192.168.0.103`)**:
+  - `http://192.168.0.103/` (Standard HTTP, no port required)
+  - `http://192.168.0.103:5173/` (Dedicated app port)
+  - `http://10.152.212.5:5173/` (Direct WireGuard / Tailscale)
+- **Service Management**:
+  - Status: `ssh azuremsia 'sudo systemctl status wows-info'`
+  - Logs: `ssh azuremsia 'sudo journalctl -u wows-info -f'`
+  - Restart: `ssh azuremsia 'sudo systemctl restart wows-info'`
+  - Manual Sync: `curl -X POST http://192.168.0.103/api/sync`
 
 ## Architecture & Technology Stack
 - **Frontend**: React 19, TypeScript 5.5+, Vite 6, Tailwind CSS v4, Lucide React icons.
@@ -92,6 +108,7 @@ All implementation across phases must adhere to the **Phased Implementation & In
 
 ## Build & Run Commands
 - `npm start` or `./start.sh` — One-command launch (sync daemon on port 3001, Vite app on port 5173).
+- `npm run serve` — Launch standalone production Express server on port 5173 (serving `dist/` + dynamic sync `/data` + API).
 - `npm run dev` — Launch Vite local development server.
 - `npm run build` — Build production bundle (`tsc && vite build`).
 - `npm run sync` — Run data ingestion and update `public/data/` from live sources.

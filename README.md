@@ -2,6 +2,11 @@
 
 A high-performance local web application delivering feature parity with [shiptool.st](https://shiptool.st/) augmented with rich, real-time and historical **ship acquisition source data** (Coal, Steel, Doubloons, Research Bureau, Dockyards, Santa/Supercontainer exclusivity, and Tech Tree costs).
 
+> [!NOTE]
+> **Default Production Deployment**: The application is deployed and hosted on the **`azuremsia` server** (`10.152.212.5`), managed by `systemd` (`wows-info.service`), and accessible across the local network (LAN) via the Raspberry Pi network hub:
+> - **LAN Web Access**: [http://192.168.0.103/](http://192.168.0.103/) (Standard HTTP) or [http://192.168.0.103:5173/](http://192.168.0.103:5173/)
+> - **Direct Tunnel**: [http://10.152.212.5:5173/](http://10.152.212.5:5173/) (WireGuard `azuremsia-lan` / Tailscale)
+
 ---
 
 ## 🚀 Architecture & Key Features
@@ -61,17 +66,60 @@ A high-performance local web application delivering feature parity with [shiptoo
 
 ---
 
+## 🌐 Default Production Deployment (`azuremsia`) & LAN Access
+
+The production instance of `wows-info` is deployed and served 24/7 on the **`azuremsia` server** (`10.152.212.5`), accessible to all devices on the home LAN via the Raspberry Pi network hub relay:
+
+### 🔗 Access Endpoints
+* **Primary LAN Web App**: [http://192.168.0.103/](http://192.168.0.103/) (Standard port 80, relayed via Raspberry Pi)
+* **Dedicated Port**: [http://192.168.0.103:5173/](http://192.168.0.103:5173/)
+* **Direct Network Tunnel**: [http://10.152.212.5:5173/](http://10.152.212.5:5173/) (WireGuard LAN `azuremsia-lan` / Tailscale)
+
+### 🧭 Direct Navigation Routes
+| Domain | URL Path |
+|---|---|
+| 🛳️ **Ship Parameters** | `http://192.168.0.103/params` |
+| 🏬 **Armory & Acquisition** | `http://192.168.0.103/armory` |
+| 📊 **Server Statistics** | `http://192.168.0.103/stats` |
+| ⚔️ **Ship Duel & Compare** | `http://192.168.0.103/compare` |
+| 🔄 **Live Sync Status** | `http://192.168.0.103/api/status` |
+
+### ⚙️ Server Architecture & Service Management
+* **Host Location**: `/home/azureuser/wows-info` on `azure-msia`
+* **Systemd Service**: `wows-info.service` (`/etc/systemd/system/wows-info.service`)
+* **Serving Engine**: Node.js v22 standalone Express engine (`PORT=5173 NODE_ENV=production node server/sync_service.mjs`), serving compiled React assets (`dist/`), client SPA routes, live dynamic datasets (`/data/*`), and Armory sync endpoints.
+* **Pi Relay Configuration**: The Raspberry Pi (`192.168.0.103`) relays TCP ports `80` and `5173` to `10.152.212.5:5173` via iptables DNAT/MASQUERADE, persisted using `netfilter-persistent`.
+
+```bash
+# Check service status on azuremsia
+ssh azuremsia 'sudo systemctl status wows-info'
+
+# Follow live service logs
+ssh azuremsia 'sudo journalctl -u wows-info -f'
+
+# Restart service after deployment
+ssh azuremsia 'sudo systemctl restart wows-info'
+
+# Trigger live Armory sync check manually
+curl -X POST http://192.168.0.103/api/sync
+```
+
+---
+
 ## 🛠️ Commands & Quick Start
 
 ```bash
-# One-command launch: starts Option B sync daemon (port 3001) & Vite web app (port 5173)
+# One-command launch (local development): starts Option B sync daemon (port 3001) & Vite web app (port 5173)
 npm start
 # (or ./start.sh)
+
+# Standalone production server on port 5173 (used on azuremsia)
+npm run serve
 
 # Ingest data and compile public/data/ artifacts from GameParams and Armory
 npm run sync
 
-# Run complete automated verification test suite (1,304/1,304 passing tests across 44 suites)
+# Run complete automated verification test suite (1,362/1,362 passing tests across 44 suites)
 npm test
 
 # Run individual verification suites
