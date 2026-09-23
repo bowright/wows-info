@@ -81,6 +81,18 @@ export interface CompactShipCatalogItem {
   flakCount: number | null;
   aswRange: number | null;
 
+  // Survivability metrics matching shiptool.st (p=SRV)
+  repairPct: number | null;
+  citadelRepairPct: number | null;
+  fireResistance: number | null;
+  fireDuration: number | null;
+  fireDamage: number | null;
+  noOfFires: number | null;
+  torpedoProtection: number | null;
+  floodingDuration: number | null;
+  floodingDamage: number | null;
+  noOfFloodings: number | null;
+
   artillery: {
     caliberMm: number;
     totalBarrels: number;

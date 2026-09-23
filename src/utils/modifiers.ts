@@ -44,8 +44,8 @@ export function calcModifiedStats(
   let aswRange = ship.aswRange ?? ship.asw?.rangeKm ?? null;
 
   // Base timers
-  let burnTime = 60; // Standard WoWs fire duration 60s
-  let floodTime = 30; // Standard WoWs flood duration 30s
+  let burnTime = ship.fireDuration ?? 60;
+  let floodTime = ship.floodingDuration ?? 40;
 
   // Artillery clones
   let artReload = ship.artillery?.reload ?? 0;
@@ -175,7 +175,7 @@ export function calcModifiedStats(
 
   // Slot 4
   const slot4 = normalizeUpgradeId(up.slot4);
-  if (slot4 === 'dcm2' || slot4 === 'damagecontrolmod2' || slot4 === 'pcm026') {
+  if (slot4 === 'dcm2' || slot4 === 'dcmod2' || slot4 === 'damagecontrolmod2' || slot4 === 'pcm026') {
     burnTimeMult *= 0.85;
     floodTimeMult *= 0.85;
     modifiersApplied.push({
@@ -547,6 +547,16 @@ export function calcModifiedStats(
     aaDps,
     flakCount,
     aswRange,
+    repairPct: ship.repairPct ?? null,
+    citadelRepairPct: ship.citadelRepairPct ?? null,
+    fireResistance: ship.fireResistance ?? null,
+    fireDuration: burnTime,
+    fireDamage: ship.fireDamage ?? null,
+    noOfFires: ship.noOfFires ?? null,
+    torpedoProtection: ship.torpedoProtection ?? null,
+    floodingDuration: floodTime,
+    floodingDamage: ship.floodingDamage ?? null,
+    noOfFloodings: ship.noOfFloodings ?? null,
     artillery: modifiedArtillery,
     torpedoes: modifiedTorpedoes,
     aa: modifiedAa,

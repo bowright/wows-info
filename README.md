@@ -153,6 +153,19 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
     *   **Server Statistics Full Tier Coverage (`/stats`)**: Expanded the Tier filter from previously hardcoded VIII-only tiers (`[8, 9, 10, 11]`) to cover all 11 tiers (`[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`), complemented by `Select All` and `None` controls for Tiers and Ship Classes.
     *   **Filter State Precision (`null` vs `[]`)**: Intuitive tri-state filter modeling (`null` = all active, `[]` = none active, `[...]` = isolated subset).
 
+*   **Shiptool Column Names & Survivability Alignment (`scripts/verify_shiptool_columns.mjs`)**: 92/92 tests passing.
+    *   **Authentic Shiptool Column Headers**: Standardized all preset column headers across General, Survivability, Artillery, Torpedoes, AA Defense, and ASW with exact [shiptool.st](https://shiptool.st/) naming:
+        *   **General**: `Health`, `Max speed`, `Rudder shift`, `Turning radius`, `Detect. by sea`, `Detect. by air`, `Smoke firing detect.`
+        *   **Survivability (`p=SRV`)**: `Health`, `Repair %`, `Citadel repair %`, `Fire resistance`, `Fire duration`, `Fire damage`, `No of fires`, `Torpedo protection`, `Flooding duration`, `Flooding damage`, `No of floodings`
+        *   **Artillery**: `Caliber`, `Range`, `Reload`, `180° turn`, `HE DPM`, `Fire chance`, `AP DPM`, `SAP DPM`, `Overmatch`, `Horiz. dispersion`, `Vert. dispersion`, `Sigma`
+        *   **Torpedoes**: `Range`, `Speed`, `Damage`, `Reload`, `Detectability`
+        *   **AA Defense**: `AA Range`, `AA DPS`, `Flak count`
+        *   **ASW**: `ASW Range`, `Reload`
+    *   **Complete Survivability Preset (`p=SRV`) Engine**:
+        *   Ingested 10 scalar survivability metrics directly into `catalog.json` and `details/[shipId].json` from raw `topHull` components.
+        *   Accurate formulas: British BB superheal (e.g. Conqueror 75% repair), citadel repair distinctions (Minotaur 50%, Des Moines 33%, Iowa/Yamato 10%, Destroyers `null` rendered as `—`), authentic fire/flood durations (30s/60s fires, 30s/40s floods), and torpedo protection (Yamato 55%, Shimakaze 0%).
+        *   Dynamic modifier compounding: India Yankee (-20% burn time), Juliet Yankee Bissotwo (-20% flood time), and Damage Control Mod 2 (-15% fire/flood recovery).
+
 ---
 
 ## 📋 Independent Audit Sign-Off (Phases 1–6 & Enhancements)
@@ -164,6 +177,7 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
 * **Phase 5 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-22)
 * **Phase 6 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-23)
 * **Filter Controls & Full Tier Range**: **PASS (Verified)** (2026-09-23)
+* **Shiptool Column Names & Survivability Alignment**: **PASS (Verified)** (2026-09-23)
 * **Auditor**: Independent Reviewer
 * **Key Findings**:
   * Full PWA offline caching (`manifest.json`, `sw.js` with Stale-While-Revalidate for `/data/` and Cache-First for static assets).
@@ -172,8 +186,10 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
   * Interactive SVG Krupp AP ballistics chart plotting penetration, flight time, velocity, and impact angles across 0–25 km.
   * Dedicated Select All / None controls for Tier, Class, Nation, and Source in Armory & Acquisition view.
   * Complete 11-tier coverage (Tiers I–XI) on Server Statistics view with All/None buttons.
+  * Complete 10-parameter Survivability (`p=SRV`) matrix with authentic formulas (Repair %, Citadel repair %, Torpedo protection, Fire/Flood durations).
+  * 100% column header parity across all parameter presets with shiptool.st.
   * Executable one-command quick launch orchestrator (`start.sh` / `npm start`).
-  * Grand Total: **1,212 / 1,212 passing tests (100% pass rate)**; clean production build.
+  * Grand Total: **1,304 / 1,304 passing tests (100% pass rate)**; clean production build.
 
 ---
 
@@ -189,5 +205,10 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
   - Select All / None toggles for Tier, Class, Nation, and Source on `/armory`.
   - Full Tier I–XI filter expansion and All/None controls on `/stats`.
   - Verification suite `verify_filter_controls.mjs` (74 automated tests).
+- [x] **Enhancement: Shiptool Column Names & Full Survivability Matrix (`p=SRV`)**
+  - Extract and promote `repairPct`, `citadelRepairPct`, `fireResistance`, `fireDuration`, `fireDamage`, `noOfFires`, `torpedoProtection`, `floodingDuration`, `floodingDamage`, `noOfFloodings`.
+  - Standardize column headers across General, Survivability, Artillery, Torpedoes, AA, and ASW.
+  - Verification suite `verify_shiptool_columns.mjs` (92 automated tests).
+
 
 

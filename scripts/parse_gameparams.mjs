@@ -204,6 +204,30 @@ export function parseGameParamsData() {
     const rudderTime = topHull.rudderTime ? Math.round(topHull.rudderTime * 10) / 10 : 0;
     const turningRadius = topHull.turningRadius || 0;
 
+    // Survivability metrics matching shiptool.st (p=SRV)
+    const repairPct = topHull.Hull?.regeneratedHPPart != null
+      ? Math.round(topHull.Hull.regeneratedHPPart * 100)
+      : 50;
+    const citadelRepairPct = topHull.Cit?.regeneratedHPPart != null
+      ? Math.round(topHull.Cit.regeneratedHPPart * 100)
+      : null;
+    const fireResistance = topHull.burnNodes?.[0]
+      ? Math.round((1 - topHull.burnNodes[0][0]) * 1000) / 10
+      : 50;
+    const fireDuration = topHull.burnNodes?.[0] ? topHull.burnNodes[0][2] : 60;
+    const fireDamage = topHull.burnNodes?.[0]
+      ? Math.round(topHull.burnNodes[0][1] * topHull.burnNodes[0][2] * 10) / 10
+      : 18;
+    const noOfFires = topHull.burnNodes ? topHull.burnNodes.length : 4;
+    const torpedoProtection = topHull.floodNodes?.[0]
+      ? Math.max(0, Math.round((1 - 3 * topHull.floodNodes[0][0]) * 100))
+      : 0;
+    const floodingDuration = topHull.floodNodes?.[0] ? topHull.floodNodes[0][2] : 40;
+    const floodingDamage = topHull.floodNodes?.[0]
+      ? Math.round(topHull.floodNodes[0][1] * topHull.floodNodes[0][2] * 10) / 10
+      : 10;
+    const noOfFloodings = topHull.floodNodes ? topHull.floodNodes.length : 2;
+
     // Concealment
     const concealmentSurface = topHull.visibilityFactor ? Math.round(topHull.visibilityFactor * 100) / 100 : null;
     const concealmentAir = topHull.visibilityFactorByPlane ? Math.round(topHull.visibilityFactorByPlane * 100) / 100 : null;
@@ -483,6 +507,18 @@ export function parseGameParamsData() {
       aaDps: totalAaDps > 0 ? totalAaDps : null,
       flakCount: flakCount > 0 ? flakCount : null,
       aswRange: aswData ? aswData.rangeKm : null,
+
+      // Survivability metrics matching shiptool.st (p=SRV)
+      repairPct,
+      citadelRepairPct,
+      fireResistance,
+      fireDuration,
+      fireDamage,
+      noOfFires,
+      torpedoProtection,
+      floodingDuration,
+      floodingDamage,
+      noOfFloodings,
 
       artillery: artilleryData ? {
         caliberMm: artilleryData.caliberMm,

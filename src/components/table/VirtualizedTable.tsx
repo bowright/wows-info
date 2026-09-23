@@ -121,6 +121,17 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       track('burnTime', s.burnTime);
       track('floodTime', s.floodTime);
 
+      track('repairPct', s.repairPct);
+      track('citadelRepairPct', s.citadelRepairPct);
+      track('fireResistance', s.fireResistance);
+      track('fireDuration', s.fireDuration);
+      track('fireDamage', s.fireDamage);
+      track('noOfFires', s.noOfFires);
+      track('torpedoProtection', s.torpedoProtection);
+      track('floodingDuration', s.floodingDuration);
+      track('floodingDamage', s.floodingDamage);
+      track('noOfFloodings', s.noOfFloodings);
+
       if (s.artillery) {
         track('caliberMm', s.artillery.caliberMm);
         track('reload', s.artillery.reload);
@@ -134,6 +145,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       }
       track('traverse180', s.traverse180);
       track('horizontalDispersion', s.horizontalDispersion);
+      track('verticalDispersion', s.verticalDispersion);
       track('heAlpha', s.heAlpha);
       track('apAlpha', s.apAlpha);
       track('sapAlpha', s.sapAlpha);
@@ -318,25 +330,30 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
 
     // General preset columns
     if (activePreset === 'general' || activePreset === 'all') {
-      addCol('health', 'HP', (s) => s.health, (v) => v.toLocaleString(), true, 80);
-      addCol('speed', 'Speed (kts)', (s) => s.speed, (v) => `${v.toFixed(1)}`, true, 85);
-      addCol('rudderTime', 'Rudder (s)', (s) => s.rudderTime, (v) => `${v.toFixed(1)}s`, false, 85);
-      addCol('turningRadius', 'Turning (m)', (s) => s.turningRadius, (v) => `${v}m`, false, 85);
-      addCol('concealmentSurface', 'Conceal Surf', (s) => s.concealmentSurface, (v) => `${v.toFixed(2)} km`, false, 95);
-      addCol('concealmentAir', 'Conceal Air', (s) => s.concealmentAir, (v) => `${v.toFixed(2)} km`, false, 90);
-      addCol('smokePenalty', 'Smoke Pen', (s) => s.smokePenalty, (v) => `${v.toFixed(2)} km`, false, 90);
+      addCol('health', 'Health', (s) => s.health, (v) => v.toLocaleString(), true, 80);
+      addCol('speed', 'Max speed', (s) => s.speed, (v) => `${v.toFixed(1)}`, true, 85);
+      addCol('rudderTime', 'Rudder shift', (s) => s.rudderTime, (v) => `${v.toFixed(1)}s`, false, 85);
+      addCol('turningRadius', 'Turning radius', (s) => s.turningRadius, (v) => `${v}m`, false, 90);
+      addCol('concealmentSurface', 'Detect. by sea', (s) => s.concealmentSurface, (v) => `${v.toFixed(2)} km`, false, 100);
+      addCol('concealmentAir', 'Detect. by air', (s) => s.concealmentAir, (v) => `${v.toFixed(2)} km`, false, 95);
+      addCol('smokePenalty', 'Smoke firing detect.', (s) => s.smokePenalty, (v) => `${v.toFixed(2)} km`, false, 125);
     }
 
-    // Survivability preset columns
-    if (activePreset === 'survivability') {
-      addCol('health', 'HP', (s) => s.health, (v) => v.toLocaleString(), true, 80);
-      addCol('rudderTime', 'Rudder (s)', (s) => s.rudderTime, (v) => `${v.toFixed(1)}s`, false, 85);
-      addCol('turningRadius', 'Turning (m)', (s) => s.turningRadius, (v) => `${v}m`, false, 85);
-      addCol('concealmentSurface', 'Conceal Surf', (s) => s.concealmentSurface, (v) => `${v.toFixed(2)} km`, false, 95);
-      addCol('concealmentAir', 'Conceal Air', (s) => s.concealmentAir, (v) => `${v.toFixed(2)} km`, false, 90);
-      addCol('smokePenalty', 'Smoke Pen', (s) => s.smokePenalty, (v) => `${v.toFixed(2)} km`, false, 90);
-      addCol('burnTime', 'Fire Dur', (s) => s.burnTime ?? 60, (v) => `${v}s`, false, 80);
-      addCol('floodTime', 'Flood Dur', (s) => s.floodTime ?? 30, (v) => `${v}s`, false, 80);
+    // Survivability preset columns (matching shiptool.st p=SRV)
+    if (activePreset === 'survivability' || activePreset === 'all') {
+      if (activePreset === 'survivability') {
+        addCol('health', 'Health', (s) => s.health, (v) => v.toLocaleString(), true, 80);
+      }
+      addCol('repairPct', 'Repair %', (s) => s.repairPct, (v) => `${v}%`, true, 80);
+      addCol('citadelRepairPct', 'Citadel repair %', (s) => s.citadelRepairPct, (v) => `${v}%`, true, 110);
+      addCol('fireResistance', 'Fire resistance', (s) => s.fireResistance, (v) => `${Math.round(v)}%`, true, 105);
+      addCol('fireDuration', 'Fire duration', (s) => s.fireDuration ?? s.burnTime ?? 60, (v) => `${v}s`, false, 95);
+      addCol('fireDamage', 'Fire damage', (s) => s.fireDamage, (v) => `${v}%`, false, 90);
+      addCol('noOfFires', 'No of fires', (s) => s.noOfFires, (v) => `${v}`, false, 85);
+      addCol('torpedoProtection', 'Torpedo protection', (s) => s.torpedoProtection, (v) => `${v}%`, true, 120);
+      addCol('floodingDuration', 'Flooding duration', (s) => s.floodingDuration ?? s.floodTime ?? 40, (v) => `${v}s`, false, 110);
+      addCol('floodingDamage', 'Flooding damage', (s) => s.floodingDamage, (v) => `${v}%`, false, 105);
+      addCol('noOfFloodings', 'No of floodings', (s) => s.noOfFloodings, (v) => `${v}`, false, 105);
     }
 
     // Artillery preset columns
@@ -344,36 +361,37 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       addCol('caliberMm', 'Caliber', (s) => s.artillery?.caliberMm, (v) => `${v}mm`, true, 80);
       addCol('rangeKm', 'Range', (s) => s.artillery?.rangeKm, (v) => `${v.toFixed(2)} km`, true, 85);
       addCol('reload', 'Reload', (s) => s.artillery?.reload, (v) => `${v.toFixed(1)}s`, false, 80);
-      addCol('traverse180', '180° Trav', (s) => s.traverse180, (v) => `${v.toFixed(1)}s`, false, 85);
+      addCol('traverse180', '180° turn', (s) => s.traverse180, (v) => `${v.toFixed(1)}s`, false, 85);
       addCol('heDpm', 'HE DPM', (s) => s.artillery?.heDpm, (v) => v.toLocaleString(), true, 90);
-      addCol('fireChance', 'Fire %', (s) => s.artillery?.fireChance, (v) => `${v}%`, true, 75);
+      addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance, (v) => `${v}%`, true, 85);
       addCol('apDpm', 'AP DPM', (s) => s.artillery?.apDpm, (v) => v.toLocaleString(), true, 90);
       addCol('sapDpm', 'SAP DPM', (s) => s.artillery?.sapDpm, (v) => (v > 0 ? v.toLocaleString() : null), true, 90);
       addCol('overmatchMm', 'Overmatch', (s) => s.artillery?.overmatchMm, (v) => `${v}mm`, true, 85);
-      addCol('horizontalDispersion', 'Dispersion', (s) => s.horizontalDispersion, (v) => `${v}m`, false, 85);
+      addCol('horizontalDispersion', 'Horiz. dispersion', (s) => s.horizontalDispersion, (v) => `${v}m`, false, 110);
+      addCol('verticalDispersion', 'Vert. dispersion', (s) => s.verticalDispersion, (v) => `${v}m`, false, 105);
       addCol('sigma', 'Sigma', (s) => s.artillery?.sigma, (v) => `${v.toFixed(2)}`, true, 75);
     }
 
     // Torpedoes preset columns
     if (activePreset === 'torpedoes' || activePreset === 'all') {
-      addCol('torpRange', 'Torp Range', (s) => s.torpedoes?.rangeKm, (v) => `${v.toFixed(1)} km`, true, 90);
-      addCol('torpSpeed', 'Torp Spd', (s) => s.torpedoes?.speed, (v) => `${v} kts`, true, 80);
-      addCol('torpDamage', 'Torp Dmg', (s) => s.torpedoes?.damage, (v) => v.toLocaleString(), true, 90);
-      addCol('torpReload', 'Torp Reload', (s) => s.torpedoes?.reload, (v) => `${v.toFixed(1)}s`, false, 90);
-      addCol('torpedoDetect', 'Torp Detect', (s) => s.torpedoDetect, (v) => `${v.toFixed(1)} km`, false, 90);
+      addCol('torpRange', activePreset === 'all' ? 'Torp. Range' : 'Range', (s) => s.torpedoes?.rangeKm, (v) => `${v.toFixed(1)} km`, true, 90);
+      addCol('torpSpeed', activePreset === 'all' ? 'Torp. Speed' : 'Speed', (s) => s.torpedoes?.speed, (v) => `${v} kts`, true, 85);
+      addCol('torpDamage', activePreset === 'all' ? 'Torp. Damage' : 'Damage', (s) => s.torpedoes?.damage, (v) => v.toLocaleString(), true, 95);
+      addCol('torpReload', activePreset === 'all' ? 'Torp. Reload' : 'Reload', (s) => s.torpedoes?.reload, (v) => `${v.toFixed(1)}s`, false, 90);
+      addCol('torpedoDetect', 'Detectability', (s) => s.torpedoDetect, (v) => `${v.toFixed(1)} km`, false, 95);
     }
 
     // AA preset columns
     if (activePreset === 'aa' || activePreset === 'all') {
       addCol('aaRange', 'AA Range', (s) => s.aaRange, (v) => `${v.toFixed(1)} km`, true, 85);
       addCol('aaDps', 'AA DPS', (s) => s.aaDps, (v) => v.toLocaleString(), true, 85);
-      addCol('flakCount', 'Flak Bursts', (s) => s.flakCount, (v) => `${v}`, true, 85);
+      addCol('flakCount', 'Flak count', (s) => s.flakCount, (v) => `${v}`, true, 85);
     }
 
     // ASW preset columns
     if (activePreset === 'asw' || activePreset === 'all') {
       addCol('aswRange', 'ASW Range', (s) => s.aswRange, (v) => `${v.toFixed(1)} km`, true, 90);
-      addCol('aswReload', 'ASW Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 85);
+      addCol('aswReload', activePreset === 'all' ? 'ASW Reload' : 'Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 85);
     }
 
     return [...pinned, ...metricCols];
