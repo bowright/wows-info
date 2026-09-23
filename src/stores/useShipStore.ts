@@ -1,13 +1,41 @@
 import { create } from 'zustand';
-import type { CompactShipCatalogItem, ColumnPreset, ShipBuild, ModifiedShipStats } from '../types';
-import { calcModifiedStats } from '../utils/modifiers';
+import type { CompactShipCatalogItem, ColumnPreset, ShipBuild, ModifiedShipStats } from '../types/index.ts';
+import { calcModifiedStats } from '../utils/modifiers.ts';
+
+export const SHIP_TIERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
+export const SHIP_CLASSES = ['Destroyer', 'Cruiser', 'Battleship', 'AirCarrier', 'Submarine'] as const;
+export const SHIP_NATIONS = [
+  'usa',
+  'japan',
+  'germany',
+  'ussr',
+  'uk',
+  'france',
+  'italy',
+  'pan_asia',
+  'europe',
+  'netherlands',
+  'commonwealth',
+  'pan_america',
+  'spain',
+] as const;
+export const SHIP_ACQUISITIONS = [
+  'Coal',
+  'Steel',
+  'Doubloons',
+  'Research Bureau',
+  'Dockyard',
+  'Tech Tree',
+  'Removed',
+  'Clones',
+] as const;
 
 export interface ShipFilters {
   searchQuery: string;
-  selectedNations: string[];
-  selectedTiers: number[];
-  selectedClasses: string[];
-  selectedAcquisitions: string[];
+  selectedNations: string[] | null;
+  selectedTiers: number[] | null;
+  selectedClasses: string[] | null;
+  selectedAcquisitions: string[] | null;
   applyCoupons: boolean;
   hideClones: boolean;
   useTopModules: boolean;
@@ -30,13 +58,21 @@ export interface ShipStoreState extends ShipFilters {
   fetchCatalog: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   toggleNation: (nation: string) => void;
-  setSelectedNations: (nations: string[]) => void;
+  setSelectedNations: (nations: string[] | null) => void;
+  selectAllNations: () => void;
+  clearNations: () => void;
   toggleTier: (tier: number) => void;
-  setSelectedTiers: (tiers: number[]) => void;
+  setSelectedTiers: (tiers: number[] | null) => void;
+  selectAllTiers: () => void;
+  clearTiers: () => void;
   toggleShipClass: (shipClass: string) => void;
-  setSelectedClasses: (classes: string[]) => void;
+  setSelectedClasses: (classes: string[] | null) => void;
+  selectAllClasses: () => void;
+  clearClasses: () => void;
   toggleAcquisition: (acquisition: string) => void;
-  setSelectedAcquisitions: (acquisitions: string[]) => void;
+  setSelectedAcquisitions: (acquisitions: string[] | null) => void;
+  selectAllAcquisitions: () => void;
+  clearAcquisitions: () => void;
   setApplyCoupons: (apply: boolean) => void;
   toggleApplyCoupons: () => void;
   setHideClones: (hide: boolean) => void;
@@ -62,15 +98,15 @@ export interface ShipStoreState extends ShipFilters {
 export function filterShips(
   ships: CompactShipCatalogItem[],
   filters: {
-    searchQuery: string;
-    selectedNations: string[];
-    selectedTiers: number[];
-    selectedClasses: string[];
-    selectedAcquisitions: string[];
-    hideClones: boolean;
+    searchQuery?: string;
+    selectedNations?: string[] | null;
+    selectedTiers?: number[] | null;
+    selectedClasses?: string[] | null;
+    selectedAcquisitions?: string[] | null;
+    hideClones?: boolean;
   }
 ): CompactShipCatalogItem[] {
-  const query = filters.searchQuery.trim().toLowerCase();
+  const query = (filters.searchQuery || '').trim().toLowerCase();
 
   return ships.filter((ship) => {
     // 1. Hide Clones
@@ -79,7 +115,10 @@ export function filterShips(
     }
 
     // 2. Nation filter
-    if (filters.selectedNations.length > 0) {
+    if (filters.selectedNations !== null && filters.selectedNations !== undefined) {
+      if (filters.selectedNations.length === 0) {
+        return false;
+      }
       const shipNation = ship.nation.toLowerCase();
       if (!filters.selectedNations.some((n) => n.toLowerCase() === shipNation)) {
         return false;
@@ -87,21 +126,30 @@ export function filterShips(
     }
 
     // 3. Tier filter
-    if (filters.selectedTiers.length > 0) {
+    if (filters.selectedTiers !== null && filters.selectedTiers !== undefined) {
+      if (filters.selectedTiers.length === 0) {
+        return false;
+      }
       if (!filters.selectedTiers.includes(ship.tier)) {
         return false;
       }
     }
 
     // 4. Class filter
-    if (filters.selectedClasses.length > 0) {
+    if (filters.selectedClasses !== null && filters.selectedClasses !== undefined) {
+      if (filters.selectedClasses.length === 0) {
+        return false;
+      }
       if (!filters.selectedClasses.includes(ship.class)) {
         return false;
       }
     }
 
     // 5. Acquisition category filter
-    if (filters.selectedAcquisitions.length > 0) {
+    if (filters.selectedAcquisitions !== null && filters.selectedAcquisitions !== undefined) {
+      if (filters.selectedAcquisitions.length === 0) {
+        return false;
+      }
       const match = filters.selectedAcquisitions.some((acq) => {
         const cat = ship.acquisition?.category;
         if (acq === 'Clones') {
@@ -142,10 +190,10 @@ export function getEffectivePrice(
 
 const initialFilters: ShipFilters = {
   searchQuery: '',
-  selectedNations: [],
-  selectedTiers: [],
-  selectedClasses: [],
-  selectedAcquisitions: [],
+  selectedNations: null,
+  selectedTiers: null,
+  selectedClasses: null,
+  selectedAcquisitions: null,
   applyCoupons: false,
   hideClones: false,
   useTopModules: true,
@@ -182,51 +230,78 @@ export const useShipStore = create<ShipStoreState>((set, get) => ({
 
   setSearchQuery: (query: string) => set({ searchQuery: query }),
 
+  selectAllNations: () => set({ selectedNations: null }),
+  clearNations: () => set({ selectedNations: [] }),
   toggleNation: (nation: string) => {
     const norm = nation.toLowerCase();
     const current = get().selectedNations;
-    if (current.includes(norm)) {
-      set({ selectedNations: current.filter((n) => n !== norm) });
+    if (current === null) {
+      set({ selectedNations: [norm] });
+    } else if (current.includes(norm)) {
+      const next = current.filter((n) => n !== norm);
+      set({ selectedNations: next });
     } else {
-      set({ selectedNations: [...current, norm] });
+      const next = [...current, norm];
+      set({ selectedNations: next.length === SHIP_NATIONS.length ? null : next });
     }
   },
 
-  setSelectedNations: (nations: string[]) =>
-    set({ selectedNations: nations.map((n) => n.toLowerCase()) }),
+  setSelectedNations: (nations: string[] | null) =>
+    set({ selectedNations: nations ? nations.map((n) => n.toLowerCase()) : null }),
 
+  selectAllTiers: () => set({ selectedTiers: null }),
+  clearTiers: () => set({ selectedTiers: [] }),
   toggleTier: (tier: number) => {
     const current = get().selectedTiers;
-    if (current.includes(tier)) {
-      set({ selectedTiers: current.filter((t) => t !== tier) });
+    if (current === null) {
+      set({ selectedTiers: [tier] });
+    } else if (current.includes(tier)) {
+      const next = current.filter((t) => t !== tier);
+      set({ selectedTiers: next });
     } else {
-      set({ selectedTiers: [...current, tier].sort((a, b) => a - b) });
+      const next = [...current, tier].sort((a, b) => a - b);
+      set({ selectedTiers: next.length === SHIP_TIERS.length ? null : next });
     }
   },
 
-  setSelectedTiers: (tiers: number[]) => set({ selectedTiers: [...tiers].sort((a, b) => a - b) }),
+  setSelectedTiers: (tiers: number[] | null) =>
+    set({ selectedTiers: tiers ? [...tiers].sort((a, b) => a - b) : null }),
 
+  selectAllClasses: () => set({ selectedClasses: null }),
+  clearClasses: () => set({ selectedClasses: [] }),
   toggleShipClass: (shipClass: string) => {
     const current = get().selectedClasses;
-    if (current.includes(shipClass)) {
-      set({ selectedClasses: current.filter((c) => c !== shipClass) });
+    if (current === null) {
+      set({ selectedClasses: [shipClass] });
+    } else if (current.includes(shipClass)) {
+      const next = current.filter((c) => c !== shipClass);
+      set({ selectedClasses: next });
     } else {
-      set({ selectedClasses: [...current, shipClass] });
+      const next = [...current, shipClass];
+      set({ selectedClasses: next.length === SHIP_CLASSES.length ? null : next });
     }
   },
 
-  setSelectedClasses: (classes: string[]) => set({ selectedClasses: classes }),
+  setSelectedClasses: (classes: string[] | null) =>
+    set({ selectedClasses: classes ? [...classes] : null }),
 
+  selectAllAcquisitions: () => set({ selectedAcquisitions: null }),
+  clearAcquisitions: () => set({ selectedAcquisitions: [] }),
   toggleAcquisition: (acquisition: string) => {
     const current = get().selectedAcquisitions;
-    if (current.includes(acquisition)) {
-      set({ selectedAcquisitions: current.filter((a) => a !== acquisition) });
+    if (current === null) {
+      set({ selectedAcquisitions: [acquisition] });
+    } else if (current.includes(acquisition)) {
+      const next = current.filter((a) => a !== acquisition);
+      set({ selectedAcquisitions: next });
     } else {
-      set({ selectedAcquisitions: [...current, acquisition] });
+      const next = [...current, acquisition];
+      set({ selectedAcquisitions: next.length === SHIP_ACQUISITIONS.length ? null : next });
     }
   },
 
-  setSelectedAcquisitions: (acquisitions: string[]) => set({ selectedAcquisitions: acquisitions }),
+  setSelectedAcquisitions: (acquisitions: string[] | null) =>
+    set({ selectedAcquisitions: acquisitions ? [...acquisitions] : null }),
 
   setApplyCoupons: (apply: boolean) => set({ applyCoupons: apply }),
   toggleApplyCoupons: () => set((state) => ({ applyCoupons: !state.applyCoupons })),
@@ -242,10 +317,10 @@ export const useShipStore = create<ShipStoreState>((set, get) => ({
   resetFilters: () =>
     set({
       searchQuery: '',
-      selectedNations: [],
-      selectedTiers: [],
-      selectedClasses: [],
-      selectedAcquisitions: [],
+      selectedNations: null,
+      selectedTiers: null,
+      selectedClasses: null,
+      selectedAcquisitions: null,
       hideClones: false,
       useTopModules: true,
       applyCoupons: false,

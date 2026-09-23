@@ -87,12 +87,20 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const setSearchQuery = useShipStore((state) => state.setSearchQuery);
   const selectedNations = useShipStore((state) => state.selectedNations);
   const toggleNation = useShipStore((state) => state.toggleNation);
+  const selectAllNations = useShipStore((state) => state.selectAllNations);
+  const clearNations = useShipStore((state) => state.clearNations);
   const selectedTiers = useShipStore((state) => state.selectedTiers);
   const toggleTier = useShipStore((state) => state.toggleTier);
+  const selectAllTiers = useShipStore((state) => state.selectAllTiers);
+  const clearTiers = useShipStore((state) => state.clearTiers);
   const selectedClasses = useShipStore((state) => state.selectedClasses);
   const toggleShipClass = useShipStore((state) => state.toggleShipClass);
+  const selectAllClasses = useShipStore((state) => state.selectAllClasses);
+  const clearClasses = useShipStore((state) => state.clearClasses);
   const selectedAcquisitions = useShipStore((state) => state.selectedAcquisitions);
   const toggleAcquisition = useShipStore((state) => state.toggleAcquisition);
+  const selectAllAcquisitions = useShipStore((state) => state.selectAllAcquisitions);
+  const clearAcquisitions = useShipStore((state) => state.clearAcquisitions);
   const applyCoupons = useShipStore((state) => state.applyCoupons);
   const toggleApplyCoupons = useShipStore((state) => state.toggleApplyCoupons);
   const hideClones = useShipStore((state) => state.hideClones);
@@ -105,10 +113,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
-    selectedNations.length > 0 ||
-    selectedTiers.length > 0 ||
-    selectedClasses.length > 0 ||
-    selectedAcquisitions.length > 0 ||
+    selectedNations !== null ||
+    selectedTiers !== null ||
+    selectedClasses !== null ||
+    selectedAcquisitions !== null ||
     hideClones ||
     !useTopModules ||
     applyCoupons;
@@ -198,8 +206,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1.5 w-12 shrink-0">
             Tier:
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={selectAllTiers}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedTiers === null
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={clearTiers}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedTiers !== null && selectedTiers.length === 0
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              None
+            </button>
+          </div>
+          <div className="h-4 w-px bg-slate-800 mx-0.5" />
           {TIERS.map((t) => {
-            const isSelected = selectedTiers.includes(t.tier);
+            const isSelected = selectedTiers !== null && selectedTiers.includes(t.tier);
             return (
               <button
                 key={t.tier}
@@ -221,8 +252,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1.5 w-12 shrink-0">
             Class:
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={selectAllClasses}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedClasses === null
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={clearClasses}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedClasses !== null && selectedClasses.length === 0
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              None
+            </button>
+          </div>
+          <div className="h-4 w-px bg-slate-800 mx-0.5" />
           {SHIP_CLASSES.map((c) => {
-            const isSelected = selectedClasses.includes(c.id);
+            const isSelected = selectedClasses !== null && selectedClasses.includes(c.id);
             return (
               <button
                 key={c.id}
@@ -246,8 +300,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1.5 w-12 shrink-0">
           Nation:
         </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={selectAllNations}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+              selectedNations === null
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={clearNations}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+              selectedNations !== null && selectedNations.length === 0
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            None
+          </button>
+        </div>
+        <div className="h-4 w-px bg-slate-800 mx-0.5" />
         {NATIONS.map((n) => {
-          const isSelected = selectedNations.includes(n.id);
+          const isSelected = selectedNations !== null && selectedNations.includes(n.id);
           return (
             <button
               key={n.id}
@@ -271,8 +348,31 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1.5 w-12 shrink-0">
             Source:
           </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={selectAllAcquisitions}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedAcquisitions === null
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={clearAcquisitions}
+              className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                selectedAcquisitions !== null && selectedAcquisitions.length === 0
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                  : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+              }`}
+            >
+              None
+            </button>
+          </div>
+          <div className="h-4 w-px bg-slate-800 mx-0.5" />
           {ACQUISITIONS.map((acq) => {
-            const isSelected = selectedAcquisitions.includes(acq.id);
+            const isSelected = selectedAcquisitions !== null && selectedAcquisitions.includes(acq.id);
             return (
               <button
                 key={acq.id}

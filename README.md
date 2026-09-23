@@ -81,7 +81,7 @@ npm run test:phase3     # Virtualized parameter matrix & acquisition filters (68
 npm run test:phase4     # Armory offers, shortage calculator & archives (379 tests)
 npm run test:phase5     # Server statistics chunks, PR calculator & brackets (489 tests)
 npm run test:phase6     # PWA manifest, service worker & compare matrix (83 tests)
-npm run test:filters    # All/None filter controls & full tier coverage (74 tests)
+npm run test:filters    # All/None filter controls & full tier coverage (132 tests)
 npm run test:shiptool   # Shiptool column names & survivability matrix (92 tests)
 
 # Launch Vite local development server
@@ -95,7 +95,7 @@ npm run build
 
 ## 🧪 Comprehensive Verification Results
 
-The automated test suite (`npm test`) executes **1,304 total tests** across **44 validation suites** with **100% passing status**:
+The automated test suite (`npm test`) executes **1,362 total tests** across **44 validation suites** with **100% passing status**:
 
 *   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
     *   **Catalog Completeness**: 993/993 ships ingested with valid typed fields and non-zero HP.
@@ -142,8 +142,9 @@ The automated test suite (`npm test`) executes **1,304 total tests** across **44
 
 ---
 
-*   **Filter Controls Enhancement (`scripts/verify_filter_controls.mjs`)**: 74/74 tests passing.
+*   **Filter Controls Enhancement (`scripts/verify_filter_controls.mjs`)**: 132/132 tests passing.
     *   **Armory & Acquisition Sub-Filters (`/armory`)**: Added dedicated `Select All` and `None` toggle buttons for Tier (I to ★), Class (DD, CA, BB, CV, SS), Nation (all 13 nations), and Acquisition Source (Coal, Steel, Doubloons, Research Bureau, Dockyard, Removed, Event Tokens).
+    *   **Parameters View Sub-Filters (`/params`)**: Added dedicated `Select All` and `None` toggle buttons for Tier, Class, Nation, and Acquisition Source with active filter state badges.
     *   **Server Statistics Full Tier Coverage (`/stats`)**: Expanded the Tier filter from previously hardcoded VIII-only tiers (`[8, 9, 10, 11]`) to cover all 11 tiers (`[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]`), complemented by `Select All` and `None` controls for Tiers and Ship Classes.
     *   **Filter State Precision (`null` vs `[]`)**: Intuitive tri-state filter modeling (`null` = all active, `[]` = none active, `[...]` = isolated subset).
 
@@ -178,12 +179,12 @@ The automated test suite (`npm test`) executes **1,304 total tests** across **44
   * Real-time network detection hook and offline status banner in `Header.tsx`.
   * Enhanced 4-way Ship Duel Matrix across 8 domains with directional advantage highlighting.
   * Interactive SVG Krupp AP ballistics chart plotting penetration, flight time, velocity, and impact angles across 0–25 km.
-  * Dedicated Select All / None controls for Tier, Class, Nation, and Source in Armory & Acquisition view.
+  * Dedicated Select All / None controls for Tier, Class, Nation, and Source across Parameters and Armory views.
   * Complete 11-tier coverage (Tiers I–XI) on Server Statistics view with All/None buttons.
   * Complete 10-parameter Survivability (`p=SRV`) matrix with authentic formulas (Repair %, Citadel repair %, Torpedo protection, Fire/Flood durations).
   * 100% column header parity across all parameter presets with shiptool.st.
   * Executable one-command quick launch orchestrator (`start.sh` / `npm start`).
-  * Grand Total: **1,304 / 1,304 passing tests (100% pass rate)**; clean production build.
+  * Grand Total: **1,362 / 1,362 passing tests (100% pass rate)**; clean production build.
 
 ---
 

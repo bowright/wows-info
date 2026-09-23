@@ -197,6 +197,139 @@ async function runVerification() {
   assert(serverStatsViewContent.includes('selectAllClasses'), 'ServerStatsView integrates selectAllClasses button');
   assert(serverStatsViewContent.includes('clearClasses'), 'ServerStatsView integrates clearClasses (None) button');
 
+  // ----------------------------------------------------
+  // Suite 5: Parameters Tab / useShipStore Filter Controls & Select All/None Actions
+  // ----------------------------------------------------
+  console.log('\nSuite 5: Parameters Tab / useShipStore Filter Controls & Select All/None Actions');
+  const shipStorePath = path.join(SRC_DIR, 'stores/useShipStore.ts');
+  assert(fs.existsSync(shipStorePath), 'src/stores/useShipStore.ts exists');
+  const shipStoreContent = fs.readFileSync(shipStorePath, 'utf8');
+
+  // Verify action definitions in interface
+  assert(shipStoreContent.includes('selectAllTiers: () => void'), 'useShipStore defines selectAllTiers action');
+  assert(shipStoreContent.includes('clearTiers: () => void'), 'useShipStore defines clearTiers (select none) action');
+  assert(shipStoreContent.includes('selectAllClasses: () => void'), 'useShipStore defines selectAllClasses action');
+  assert(shipStoreContent.includes('clearClasses: () => void'), 'useShipStore defines clearClasses (select none) action');
+  assert(shipStoreContent.includes('selectAllNations: () => void'), 'useShipStore defines selectAllNations action');
+  assert(shipStoreContent.includes('clearNations: () => void'), 'useShipStore defines clearNations (select none) action');
+  assert(shipStoreContent.includes('selectAllAcquisitions: () => void'), 'useShipStore defines selectAllAcquisitions action');
+  assert(shipStoreContent.includes('clearAcquisitions: () => void'), 'useShipStore defines clearAcquisitions (select none) action');
+
+  // Verify category constants
+  assert(shipStoreContent.includes('SHIP_TIERS'), 'useShipStore exports SHIP_TIERS constant');
+  assert(shipStoreContent.includes('SHIP_CLASSES'), 'useShipStore exports SHIP_CLASSES constant');
+  assert(shipStoreContent.includes('SHIP_NATIONS'), 'useShipStore exports SHIP_NATIONS constant');
+  assert(shipStoreContent.includes('SHIP_ACQUISITIONS'), 'useShipStore exports SHIP_ACQUISITIONS constant');
+
+  // Dynamic import of useShipStore and filterShips
+  const { useShipStore, filterShips, SHIP_TIERS } = await import('../src/stores/useShipStore.ts');
+  const shipStore = useShipStore.getState();
+
+  // Test reset & initial null state
+  shipStore.resetFilters();
+  assert(useShipStore.getState().selectedTiers === null, 'Initial/reset selectedTiers is null (All)');
+  assert(useShipStore.getState().selectedClasses === null, 'Initial/reset selectedClasses is null (All)');
+  assert(useShipStore.getState().selectedNations === null, 'Initial/reset selectedNations is null (All)');
+  assert(useShipStore.getState().selectedAcquisitions === null, 'Initial/reset selectedAcquisitions is null (All)');
+
+  // Test Tier actions
+  shipStore.clearTiers();
+  assert(Array.isArray(useShipStore.getState().selectedTiers) && useShipStore.getState().selectedTiers.length === 0, 'clearTiers() sets selectedTiers to [] (None)');
+  shipStore.selectAllTiers();
+  assert(useShipStore.getState().selectedTiers === null, 'selectAllTiers() sets selectedTiers to null (All)');
+  shipStore.toggleTier(10);
+  assert(JSON.stringify(useShipStore.getState().selectedTiers) === '[10]', 'toggleTier(10) isolates Tier 10 from null');
+  shipStore.toggleTier(9);
+  assert(JSON.stringify(useShipStore.getState().selectedTiers) === '[9,10]', 'toggleTier(9) adds Tier 9');
+  shipStore.toggleTier(9);
+  assert(JSON.stringify(useShipStore.getState().selectedTiers) === '[10]', 'toggleTier(9) removes Tier 9');
+
+  // Test Class actions
+  shipStore.clearClasses();
+  assert(Array.isArray(useShipStore.getState().selectedClasses) && useShipStore.getState().selectedClasses.length === 0, 'clearClasses() sets selectedClasses to [] (None)');
+  shipStore.selectAllClasses();
+  assert(useShipStore.getState().selectedClasses === null, 'selectAllClasses() sets selectedClasses to null (All)');
+  shipStore.toggleShipClass('Battleship');
+  assert(JSON.stringify(useShipStore.getState().selectedClasses) === '["Battleship"]', 'toggleShipClass("Battleship") isolates Battleship from null');
+
+  // Test Nation actions
+  shipStore.clearNations();
+  assert(Array.isArray(useShipStore.getState().selectedNations) && useShipStore.getState().selectedNations.length === 0, 'clearNations() sets selectedNations to [] (None)');
+  shipStore.selectAllNations();
+  assert(useShipStore.getState().selectedNations === null, 'selectAllNations() sets selectedNations to null (All)');
+  shipStore.toggleNation('japan');
+  assert(JSON.stringify(useShipStore.getState().selectedNations) === '["japan"]', 'toggleNation("japan") isolates japan from null');
+
+  // Test Acquisition actions
+  shipStore.clearAcquisitions();
+  assert(Array.isArray(useShipStore.getState().selectedAcquisitions) && useShipStore.getState().selectedAcquisitions.length === 0, 'clearAcquisitions() sets selectedAcquisitions to [] (None)');
+  shipStore.selectAllAcquisitions();
+  assert(useShipStore.getState().selectedAcquisitions === null, 'selectAllAcquisitions() sets selectedAcquisitions to null (All)');
+  shipStore.toggleAcquisition('Steel');
+  assert(JSON.stringify(useShipStore.getState().selectedAcquisitions) === '["Steel"]', 'toggleAcquisition("Steel") isolates Steel from null');
+
+  // Test resetting back to null when all items selected
+  shipStore.clearTiers();
+  for (const t of SHIP_TIERS) {
+    shipStore.toggleTier(t);
+  }
+  assert(useShipStore.getState().selectedTiers === null, 'Selecting all tiers resets selectedTiers to null (All)');
+
+  // Test filterShips function with catalog data
+  const catalogPath = path.join(ROOT, 'public/data/catalog.json');
+  const catalogData = JSON.parse(fs.readFileSync(catalogPath, 'utf8'));
+
+  // Tier filtering
+  const allTiers = filterShips(catalogData, { selectedTiers: null });
+  assert(allTiers.length === catalogData.length, 'filterShips with selectedTiers=null returns all ships');
+  const noneTiers = filterShips(catalogData, { selectedTiers: [] });
+  assert(noneTiers.length === 0, 'filterShips with selectedTiers=[] returns 0 ships');
+  const t10Ships = filterShips(catalogData, { selectedTiers: [10] });
+  assert(t10Ships.length > 0 && t10Ships.every((s) => s.tier === 10), 'filterShips with selectedTiers=[10] returns only Tier X ships');
+
+  // Class filtering
+  const noneClasses = filterShips(catalogData, { selectedClasses: [] });
+  assert(noneClasses.length === 0, 'filterShips with selectedClasses=[] returns 0 ships');
+  const bbShips = filterShips(catalogData, { selectedClasses: ['Battleship'] });
+  assert(bbShips.length > 0 && bbShips.every((s) => s.class === 'Battleship'), 'filterShips with selectedClasses=["Battleship"] returns only Battleships');
+
+  // Nation filtering
+  const noneNations = filterShips(catalogData, { selectedNations: [] });
+  assert(noneNations.length === 0, 'filterShips with selectedNations=[] returns 0 ships');
+  const japanShips = filterShips(catalogData, { selectedNations: ['japan'] });
+  assert(japanShips.length > 0 && japanShips.every((s) => s.nation.toLowerCase() === 'japan'), 'filterShips with selectedNations=["japan"] returns only Japanese ships');
+
+  // Acquisition filtering
+  const noneAcq = filterShips(catalogData, { selectedAcquisitions: [] });
+  assert(noneAcq.length === 0, 'filterShips with selectedAcquisitions=[] returns 0 ships');
+  const steelShips = filterShips(catalogData, { selectedAcquisitions: ['Steel'] });
+  assert(steelShips.length > 0 && steelShips.every((s) => s.acquisition?.category === 'Steel'), 'filterShips with selectedAcquisitions=["Steel"] returns only Steel ships');
+
+  // Clean up store state
+  shipStore.resetFilters();
+
+  // Test FilterBar.tsx UI controls
+  const filterBarPath = path.join(SRC_DIR, 'components/filters/FilterBar.tsx');
+  assert(fs.existsSync(filterBarPath), 'src/components/filters/FilterBar.tsx exists');
+  const filterBarContent = fs.readFileSync(filterBarPath, 'utf8');
+
+  assert(filterBarContent.includes('selectAllTiers'), 'FilterBar.tsx extracts and renders selectAllTiers');
+  assert(filterBarContent.includes('clearTiers'), 'FilterBar.tsx extracts and renders clearTiers');
+  assert(filterBarContent.includes('selectAllClasses'), 'FilterBar.tsx extracts and renders selectAllClasses');
+  assert(filterBarContent.includes('clearClasses'), 'FilterBar.tsx extracts and renders clearClasses');
+  assert(filterBarContent.includes('selectAllNations'), 'FilterBar.tsx extracts and renders selectAllNations');
+  assert(filterBarContent.includes('clearNations'), 'FilterBar.tsx extracts and renders clearNations');
+  assert(filterBarContent.includes('selectAllAcquisitions'), 'FilterBar.tsx extracts and renders selectAllAcquisitions');
+  assert(filterBarContent.includes('clearAcquisitions'), 'FilterBar.tsx extracts and renders clearAcquisitions');
+  assert(filterBarContent.includes('selectedTiers === null'), 'FilterBar.tsx checks selectedTiers === null for All');
+  assert(filterBarContent.includes('selectedTiers !== null && selectedTiers.length === 0'), 'FilterBar.tsx checks selectedTiers.length === 0 for None');
+  assert(filterBarContent.includes('selectedClasses === null'), 'FilterBar.tsx checks selectedClasses === null for All');
+  assert(filterBarContent.includes('selectedClasses !== null && selectedClasses.length === 0'), 'FilterBar.tsx checks selectedClasses.length === 0 for None');
+  assert(filterBarContent.includes('selectedNations === null'), 'FilterBar.tsx checks selectedNations === null for All');
+  assert(filterBarContent.includes('selectedNations !== null && selectedNations.length === 0'), 'FilterBar.tsx checks selectedNations.length === 0 for None');
+  assert(filterBarContent.includes('selectedAcquisitions === null'), 'FilterBar.tsx checks selectedAcquisitions === null for All');
+  assert(filterBarContent.includes('selectedAcquisitions !== null && selectedAcquisitions.length === 0'), 'FilterBar.tsx checks selectedAcquisitions.length === 0 for None');
+
   console.log('\n====================================================');
   console.log(`  Filter Controls Summary: ${passedTests} passed, ${failedTests} failed (${totalTests} total tests)`);
   console.log('====================================================\n');

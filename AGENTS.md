@@ -95,7 +95,7 @@ All implementation across phases must adhere to the **Phased Implementation & In
 - `npm run dev` — Launch Vite local development server.
 - `npm run build` — Build production bundle (`tsc && vite build`).
 - `npm run sync` — Run data ingestion and update `public/data/` from live sources.
-- `npm test` — Run complete automated verification test suite (1,304/1,304 passing tests across 44 suites).
+- `npm test` — Run complete automated verification test suite (1,362/1,362 passing tests across 44 suites).
 - `npm run test:phase1` .. `npm run test:phase6` — Run individual phase verification suites.
 - `npm run test:filters` — Run filter controls & tier coverage verification suite.
 - `npm run test:shiptool` — Run shiptool column headers & survivability matrix verification suite.
