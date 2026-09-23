@@ -299,7 +299,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             applyCoupons={applyCoupons}
           />
         ),
-        size: 155,
+        size: 170,
       }),
     ];
 

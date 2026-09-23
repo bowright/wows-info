@@ -46,6 +46,7 @@ export function normalizeArmoryData(rawState) {
   const shipOffers = [];
   const shipBundlesMap = new Map();
   const byShipId = new Map();
+  const offersByShipId = new Map();
 
   for (const [bId, b] of Object.entries(bundles)) {
     const entitlements = Array.isArray(b.entitlements) ? b.entitlements : [];
@@ -104,9 +105,28 @@ export function normalizeArmoryData(rawState) {
 
       shipOffers.push(offer);
 
-      // Keep the best (or primary/lowest price) offer per shipId
-      if (!byShipId.has(shipId) || (byShipId.get(shipId).isBonus && !offer.isBonus)) {
+      if (!offersByShipId.has(shipId)) {
+        offersByShipId.set(shipId, []);
+      }
+      offersByShipId.get(shipId).push(offer);
+
+      // Keep the best (or primary) offer per shipId: prefer coal over gold, prefer non-bonus, prefer lower price
+      const existing = byShipId.get(shipId);
+      if (!existing) {
         byShipId.set(shipId, offer);
+      } else {
+        if (existing.isBonus && !offer.isBonus) {
+          byShipId.set(shipId, offer);
+        } else if (!existing.isBonus && offer.isBonus) {
+          // keep existing
+        } else if (existing.currency !== offer.currency) {
+          // If dual coal/gold offer, prefer coal as primary armory identity
+          if (offer.currency === 'coal' && existing.currency === 'gold') {
+            byShipId.set(shipId, offer);
+          }
+        } else if (offer.price < existing.price) {
+          byShipId.set(shipId, offer);
+        }
       }
     }
   }
@@ -114,7 +134,8 @@ export function normalizeArmoryData(rawState) {
   return {
     shipOffers,
     shipBundles: Array.from(shipBundlesMap.values()),
-    byShipId
+    byShipId,
+    offersByShipId
   };
 }
 

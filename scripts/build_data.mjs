@@ -66,9 +66,15 @@ export async function buildData(options = {}) {
   for (const ship of catalog) {
     const sId = ship.id;
     const curated = curatedData[sId] || {};
+    const shipArmoryOffers = armoryResult.offersByShipId?.get(sId) || [];
     const armoryOffer = armoryResult.byShipId.get(sId);
 
+    const coalOffer = shipArmoryOffers.find(o => o.currency === 'coal');
+    const goldOffer = shipArmoryOffers.find(o => o.currency === 'gold');
+    const isDualCoalGold = Boolean(coalOffer && goldOffer);
+
     let category = curated.category || 'Testing';
+    let categories = [category];
     let status = curated.status || 'in_testing';
     let primaryCurrency = curated.primaryCurrency || 'none';
     let price = curated.price != null ? curated.price : null;
@@ -76,12 +82,48 @@ export async function buildData(options = {}) {
     let couponEligible = Boolean(curated.couponEligible);
     let couponPrice = curated.couponPrice != null ? curated.couponPrice : null;
     let steelEquivalent = curated.steelEquivalent != null ? curated.steelEquivalent : null;
+    let secondaryCurrency = null;
+    let secondaryPrice = null;
+    let secondaryBasePrice = null;
+    let secondaryCouponEligible = false;
+    let secondaryCouponPrice = null;
     let obtainMethodText = curated.obtainMethodText || 'Special / Testing';
     let bundleId = null;
     let bundleExpiry = null;
+    let otherOffers = null;
 
-    // Active Armory bundle offer takes priority for current availability & pricing
-    if (armoryOffer) {
+    if (isDualCoalGold) {
+      status = 'available_armory';
+      category = 'Coal / Doubloon';
+      categories = ['Coal', 'Doubloon'];
+      primaryCurrency = 'coal';
+      price = coalOffer.price;
+      basePrice = coalOffer.originalPrice || coalOffer.price;
+      couponEligible = true;
+      couponPrice = coalOffer.couponPrice;
+      steelEquivalent = coalOffer.steelEquivalent;
+      bundleId = coalOffer.bundleId;
+      bundleExpiry = coalOffer.bundleExpiry || goldOffer.bundleExpiry;
+
+      secondaryCurrency = 'gold';
+      secondaryPrice = goldOffer.price;
+      secondaryBasePrice = goldOffer.originalPrice || goldOffer.price;
+      secondaryCouponEligible = true;
+      secondaryCouponPrice = goldOffer.couponPrice;
+
+      obtainMethodText = `Armory (${coalOffer.price.toLocaleString()} Coal or ${goldOffer.price.toLocaleString()} Doubloons)`;
+      otherOffers = [
+        {
+          bundleId: goldOffer.bundleId,
+          currency: 'gold',
+          price: goldOffer.price,
+          basePrice: goldOffer.originalPrice || goldOffer.price,
+          couponEligible: true,
+          couponPrice: goldOffer.couponPrice,
+          steelEquivalent: null
+        }
+      ];
+    } else if (armoryOffer) {
       status = 'available_armory';
       primaryCurrency = armoryOffer.currency;
       price = armoryOffer.price;
@@ -105,6 +147,7 @@ export async function buildData(options = {}) {
       } else if (armoryOffer.currency === 'community') {
         category = 'Community Tokens';
       }
+      categories = [category];
 
       const cName = currencyLabels[armoryOffer.currency] || armoryOffer.currency;
       obtainMethodText = `Armory (${price.toLocaleString()} ${cName})`;
@@ -112,6 +155,7 @@ export async function buildData(options = {}) {
 
     const acqRecord = {
       category,
+      categories,
       status,
       primaryCurrency,
       price,
@@ -119,6 +163,11 @@ export async function buildData(options = {}) {
       couponEligible,
       couponPrice,
       steelEquivalent,
+      secondaryCurrency,
+      secondaryPrice,
+      secondaryBasePrice,
+      secondaryCouponEligible,
+      secondaryCouponPrice,
       minDoubloonsRequired: curated.minDoubloonsRequired || null,
       totalPhases: curated.totalPhases || null,
       isClone: Boolean(curated.isClone),
@@ -127,7 +176,8 @@ export async function buildData(options = {}) {
       availabilityNote: curated.availabilityNote || null,
       rarity: curated.rarity || null,
       bundleId,
-      bundleExpiry
+      bundleExpiry,
+      otherOffers
     };
 
     masterShipAcquisition[sId] = acqRecord;
@@ -135,6 +185,7 @@ export async function buildData(options = {}) {
     // Attach compact acquisition data to catalog entry
     ship.acquisition = {
       category: acqRecord.category,
+      categories: acqRecord.categories,
       status: acqRecord.status,
       primaryCurrency: acqRecord.primaryCurrency,
       price: acqRecord.price,
@@ -142,13 +193,21 @@ export async function buildData(options = {}) {
       couponEligible: acqRecord.couponEligible,
       couponPrice: acqRecord.couponPrice,
       steelEquivalent: acqRecord.steelEquivalent,
+      secondaryCurrency: acqRecord.secondaryCurrency,
+      secondaryPrice: acqRecord.secondaryPrice,
+      secondaryBasePrice: acqRecord.secondaryBasePrice,
+      secondaryCouponEligible: acqRecord.secondaryCouponEligible,
+      secondaryCouponPrice: acqRecord.secondaryCouponPrice,
       minDoubloonsRequired: acqRecord.minDoubloonsRequired,
       totalPhases: acqRecord.totalPhases,
       isClone: acqRecord.isClone,
       cloneOfShipId: acqRecord.cloneOfShipId,
       obtainMethodText: acqRecord.obtainMethodText,
       availabilityNote: acqRecord.availabilityNote,
-      rarity: acqRecord.rarity
+      rarity: acqRecord.rarity,
+      bundleId: acqRecord.bundleId,
+      bundleExpiry: acqRecord.bundleExpiry,
+      otherOffers: acqRecord.otherOffers
     };
   }
 

@@ -17,6 +17,15 @@ interface AcquisitionBadgeProps {
   applyCoupons?: boolean;
 }
 
+const formatCompact = (val: number | null | undefined): string => {
+  if (val == null) return '';
+  if (val >= 1000) {
+    const k = val / 1000;
+    return Number.isInteger(k) ? `${k}K` : `${k.toFixed(1)}K`;
+  }
+  return val.toLocaleString();
+};
+
 export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
   acquisition,
   applyCoupons = false,
@@ -33,6 +42,7 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
 
   const {
     category,
+    categories,
     status,
     primaryCurrency,
     price,
@@ -40,6 +50,11 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
     couponEligible,
     couponPrice,
     steelEquivalent,
+    secondaryCurrency,
+    secondaryPrice,
+    secondaryBasePrice,
+    secondaryCouponEligible,
+    secondaryCouponPrice,
     minDoubloonsRequired,
     totalPhases,
     isClone,
@@ -48,11 +63,21 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
     rarity,
   } = acquisition;
 
+  const isDualCoalDoubloon =
+    category === 'Coal / Doubloon' ||
+    (categories?.includes('Coal') && categories?.includes('Doubloon')) ||
+    (primaryCurrency === 'coal' && secondaryCurrency === 'gold');
+
   // Compute effective price based on coupon toggle
   const effectivePrice =
     applyCoupons && couponEligible
       ? couponPrice ?? (price != null ? Math.round(price * 0.75) : null)
       : price;
+
+  const effectiveSecondaryPrice =
+    applyCoupons && secondaryCouponEligible
+      ? secondaryCouponPrice ?? (secondaryPrice != null ? Math.round(secondaryPrice * 0.75) : null)
+      : secondaryPrice;
 
   const formattedEffectivePrice =
     effectivePrice != null ? effectivePrice.toLocaleString() : null;
@@ -65,6 +90,15 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
       ? Math.round(price * 0.75).toLocaleString()
       : null;
 
+  const formattedSecondaryBasePrice =
+    (secondaryBasePrice ?? secondaryPrice) != null ? (secondaryBasePrice ?? secondaryPrice)!.toLocaleString() : null;
+  const formattedSecondaryCouponPrice =
+    secondaryCouponPrice != null
+      ? secondaryCouponPrice.toLocaleString()
+      : secondaryPrice != null
+      ? Math.round(secondaryPrice * 0.75).toLocaleString()
+      : null;
+
   // Custom visual styles by category
   let badgeClasses = 'bg-slate-800 text-slate-300 border-slate-700';
   let IconComponent = Layers;
@@ -74,6 +108,13 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
     badgeClasses = 'bg-purple-950/80 text-purple-300 border-purple-800/80 hover:bg-purple-900/90';
     IconComponent = Copy;
     label = 'Clone / Replica';
+  } else if (isDualCoalDoubloon) {
+    badgeClasses = 'bg-gradient-to-r from-amber-950/90 to-yellow-950/90 text-amber-200 border-amber-600/80 hover:border-amber-400';
+    IconComponent = Flame;
+    label =
+      effectivePrice != null && effectiveSecondaryPrice != null
+        ? `${formatCompact(effectivePrice)} Coal / ${formatCompact(effectiveSecondaryPrice)} Doub`
+        : 'Coal / Doubloon';
   } else if (category === 'Coal') {
     badgeClasses = 'bg-amber-950/80 text-amber-300 border-amber-800/80 hover:bg-amber-900/90';
     IconComponent = Flame;
@@ -109,6 +150,10 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
     badgeClasses = 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80';
     IconComponent = Award;
     label = category;
+  } else if (category === 'Clan/Ranked Reward') {
+    badgeClasses = 'bg-indigo-950/80 text-indigo-300 border-indigo-800/80';
+    IconComponent = Award;
+    label = 'Reward Ship';
   }
 
   return (
@@ -120,8 +165,15 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
       <span
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-text ${badgeClasses}`}
       >
-        <IconComponent className="w-3 h-3 shrink-0" />
-        <span className="truncate max-w-[130px]">{label}</span>
+        {isDualCoalDoubloon ? (
+          <span className="flex items-center gap-0.5 shrink-0">
+            <Flame className="w-3 h-3 text-amber-400" />
+            <Coins className="w-3 h-3 text-yellow-400" />
+          </span>
+        ) : (
+          <IconComponent className="w-3 h-3 shrink-0" />
+        )}
+        <span className="truncate max-w-[155px]" title={label}>{label}</span>
       </span>
 
       {/* Popover / Tooltip */}
@@ -129,8 +181,18 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
         <div className="absolute left-0 bottom-full mb-1.5 z-50 w-72 p-3 bg-slate-900 text-slate-100 rounded-lg shadow-2xl border border-slate-700 text-xs pointer-events-none">
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800">
             <span className="font-semibold text-white flex items-center gap-1.5">
-              <IconComponent className="w-3.5 h-3.5 text-amber-400" />
-              {category}
+              {isDualCoalDoubloon ? (
+                <>
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  <Coins className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>Coal or Doubloons</span>
+                </>
+              ) : (
+                <>
+                  <IconComponent className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{category}</span>
+                </>
+              )}
             </span>
             {status && (
               <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
@@ -140,36 +202,85 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
           </div>
 
           <div className="space-y-1.5">
-            {/* Price Information */}
-            {price != null && (
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Base Price:</span>
-                <span className="font-mono font-medium text-slate-200">
-                  {formattedBasePrice} {primaryCurrency.toUpperCase()}
-                </span>
-              </div>
-            )}
+            {/* Dual Coal + Doubloon Price Information */}
+            {isDualCoalDoubloon ? (
+              <div className="space-y-1 text-slate-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <Flame className="w-3 h-3 text-amber-400" /> Coal Base:
+                  </span>
+                  <span className="font-mono font-medium text-amber-300">
+                    {formattedBasePrice} COAL
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <Coins className="w-3 h-3 text-yellow-400" /> Doubloons:
+                  </span>
+                  <span className="font-mono font-medium text-yellow-300">
+                    {formattedSecondaryBasePrice} DOUB
+                  </span>
+                </div>
 
-            {/* Coupon Information */}
-            {couponEligible && (
-              <div className="flex items-center justify-between text-emerald-400">
-                <span className="flex items-center gap-1">
-                  <span>-25% Armory Coupon:</span>
-                </span>
-                <span className="font-mono font-bold">
-                  {formattedCouponPrice} {primaryCurrency.toUpperCase()}
-                </span>
-              </div>
-            )}
+                {couponEligible && (
+                  <div className="pt-1 border-t border-slate-800 text-[11px] space-y-0.5 text-emerald-400">
+                    <div className="font-medium text-emerald-300 flex items-center gap-1">
+                      <span>-25% Armory Coupons:</span>
+                    </div>
+                    <div className="flex justify-between pl-2 font-mono">
+                      <span className="text-slate-400">Coal:</span>
+                      <span className="font-bold">{formattedCouponPrice} COAL</span>
+                    </div>
+                    <div className="flex justify-between pl-2 font-mono">
+                      <span className="text-slate-400">Doubloons:</span>
+                      <span className="font-bold">{formattedSecondaryCouponPrice} DOUB</span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Steel to Coal substitution */}
-            {category === 'Coal' && steelEquivalent != null && (
-              <div className="flex items-center justify-between text-cyan-300 text-[11px] pt-0.5">
-                <span>1:10 Steel Substitution:</span>
-                <span className="font-mono font-semibold">
-                  {steelEquivalent.toLocaleString()} Steel
-                </span>
+                {steelEquivalent != null && (
+                  <div className="flex items-center justify-between text-cyan-300 text-[11px] pt-0.5">
+                    <span>1:10 Steel Substitution:</span>
+                    <span className="font-mono font-semibold">
+                      {steelEquivalent.toLocaleString()} Steel
+                    </span>
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                {/* Single Price Information */}
+                {price != null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Base Price:</span>
+                    <span className="font-mono font-medium text-slate-200">
+                      {formattedBasePrice} {primaryCurrency.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+
+                {/* Coupon Information */}
+                {couponEligible && (
+                  <div className="flex items-center justify-between text-emerald-400">
+                    <span className="flex items-center gap-1">
+                      <span>-25% Armory Coupon:</span>
+                    </span>
+                    <span className="font-mono font-bold">
+                      {formattedCouponPrice} {primaryCurrency.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+
+                {/* Steel to Coal substitution */}
+                {category === 'Coal' && steelEquivalent != null && (
+                  <div className="flex items-center justify-between text-cyan-300 text-[11px] pt-0.5">
+                    <span>1:10 Steel Substitution:</span>
+                    <span className="font-mono font-semibold">
+                      {steelEquivalent.toLocaleString()} Steel
+                    </span>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Dockyard details */}

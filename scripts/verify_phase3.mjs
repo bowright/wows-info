@@ -60,13 +60,17 @@ function filterShips(ships, filters) {
     if (filters.selectedAcquisitions && filters.selectedAcquisitions.length > 0) {
       const match = filters.selectedAcquisitions.some((acq) => {
         const cat = ship.acquisition?.category;
+        const cats = ship.acquisition?.categories || (cat ? [cat] : []);
         if (acq === 'Clones') {
-          return ship.acquisition?.isClone === true || cat === 'Black Friday' || cat === 'Collaboration';
+          return ship.acquisition?.isClone === true || cat === 'Black Friday' || cat === 'Collaboration' || cats.includes('Black Friday') || cats.includes('Collaboration');
         }
         if (acq === 'Doubloons' || acq === 'Doubloon') {
-          return cat === 'Doubloon';
+          return cat === 'Doubloon' || cat === 'Coal / Doubloon' || cats.includes('Doubloon');
         }
-        return cat === acq;
+        if (acq === 'Coal') {
+          return cat === 'Coal' || cat === 'Coal / Doubloon' || cats.includes('Coal');
+        }
+        return cat === acq || cats.includes(acq);
       });
       if (!match) return false;
     }
@@ -108,12 +112,18 @@ async function runVerification() {
   // --- Suite 1: Acquisition Filtering Accuracy ---
   console.log('\nSuite 1: Acquisition Category Filtering');
 
-  // Filter by Coal
+  // Filter by Coal (all 52 ships obtainable via Coal, including 33 dual Coal/Doubloon)
   const coalShips = filterShips(catalog, { selectedAcquisitions: ['Coal'] });
-  assert(coalShips.length === 35, `Filter by Coal returns exactly 35 ships (found ${coalShips.length})`);
-  assert(coalShips.every((s) => s.acquisition?.category === 'Coal'), 'All filtered ships have category Coal');
+  assert(coalShips.length === 52, `Filter by Coal returns all 52 Coal-obtainable ships (found ${coalShips.length})`);
+  assert(coalShips.every((s) => s.acquisition?.category === 'Coal' || s.acquisition?.category === 'Coal / Doubloon'), 'All filtered ships have category Coal or Coal / Doubloon');
+  assert(coalShips.some((s) => s.dispName === 'Kearsarge'), 'Found Kearsarge in Coal ships');
   assert(coalShips.some((s) => s.dispName === 'Tulsa'), 'Found Tulsa in Coal ships');
   assert(coalShips.some((s) => s.dispName === 'Salem'), 'Found Salem in Coal ships');
+
+  // Filter by Doubloons (includes Kearsarge and other dual-currency ships)
+  const doubShips = filterShips(catalog, { selectedAcquisitions: ['Doubloons'] });
+  assert(doubShips.some((s) => s.dispName === 'Kearsarge'), 'Found Kearsarge in Doubloon ships');
+  assert(doubShips.some((s) => s.dispName === 'Tulsa'), 'Found Tulsa in Doubloon ships');
 
   // Filter by Steel
   const steelShips = filterShips(catalog, { selectedAcquisitions: ['Steel'] });
@@ -130,14 +140,16 @@ async function runVerification() {
 
   // Filter by Dockyard
   const dockyardShips = filterShips(catalog, { selectedAcquisitions: ['Dockyard'] });
-  assert(dockyardShips.length === 14, `Filter by Dockyard returns exactly 14 ships (found ${dockyardShips.length})`);
+  assert(dockyardShips.length === 16, `Filter by Dockyard returns exactly 16 ships (found ${dockyardShips.length})`);
   assert(dockyardShips.some((s) => s.dispName === 'Wisconsin'), 'Found Wisconsin in Dockyard ships');
+  assert(dockyardShips.some((s) => s.dispName === 'ZF-6'), 'Found ZF-6 in Dockyard ships');
 
   // Filter by Removed
   const removedShips = filterShips(catalog, { selectedAcquisitions: ['Removed'] });
-  assert(removedShips.length === 30, `Filter by Removed returns exactly 30 ships (found ${removedShips.length})`);
+  assert(removedShips.length === 35, `Filter by Removed returns exactly 35 ships (found ${removedShips.length})`);
   assert(removedShips.some((s) => s.dispName === 'Musashi'), 'Found Musashi in Removed ships');
   assert(removedShips.some((s) => s.dispName === 'Småland'), 'Found Småland in Removed ships');
+  assert(removedShips.some((s) => s.dispName === 'Admiral Graf Spee'), 'Found Admiral Graf Spee in Removed ships');
 
   // --- Suite 2: Coupon Price Calculation (-25% Armory Coupons) ---
   console.log('\nSuite 2: Coupon Price Modeling');
@@ -175,12 +187,12 @@ async function runVerification() {
   console.log('\nSuite 3: Clones & Replicas Filtering');
 
   const totalClones = catalog.filter((s) => s.acquisition?.isClone).length;
-  assert(totalClones === 110, `Catalog contains exactly 110 clone ships (found ${totalClones})`);
+  assert(totalClones === 144, `Catalog contains exactly 144 clone ships (found ${totalClones})`);
 
   const unclonedShips = filterShips(catalog, { hideClones: true });
   assert(
-    unclonedShips.length === catalog.length - 110,
-    `Hide Clones removes all 110 clone ships: 993 -> ${unclonedShips.length} ships (expected 883)`
+    unclonedShips.length === catalog.length - 144,
+    `Hide Clones removes all 144 clone ships: 993 -> ${unclonedShips.length} ships (expected 849)`
   );
   assert(
     unclonedShips.every((s) => !s.acquisition?.isClone),
@@ -193,7 +205,7 @@ async function runVerification() {
 
   // Filter by Clones specifically
   const onlyClones = filterShips(catalog, { selectedAcquisitions: ['Clones'] });
-  assert(onlyClones.length === 110, `Filtering specifically by Clones returns all 110 replica ships (found ${onlyClones.length})`);
+  assert(onlyClones.length === 144, `Filtering specifically by Clones returns all 144 replica ships (found ${onlyClones.length})`);
 
   // --- Suite 4: Search Query Filtering Precision ---
   console.log('\nSuite 4: Search Query Precision');

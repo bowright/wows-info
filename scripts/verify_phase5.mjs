@@ -317,8 +317,8 @@ async function runVerification() {
   const coalShips = allShips.filter((s) => matchesAcquisitionCategory(s.category, 'Coal'));
   assert(coalShips.length > 0, `Coal filter returns ${coalShips.length} ships`);
   assert(
-    coalShips.every((s) => s.category === 'Coal'),
-    'All ships under Coal filter strictly have category === Coal'
+    coalShips.every((s) => s.category === 'Coal' || s.category === 'Coal / Doubloon'),
+    'All ships under Coal filter strictly have category Coal or Coal / Doubloon'
   );
 
   // Filter 2: Steel ships

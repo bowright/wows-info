@@ -5,6 +5,7 @@ export type AcquisitionCategory =
   | 'Coal'
   | 'Steel'
   | 'Doubloon'
+  | 'Coal / Doubloon'
   | 'Research Bureau'
   | 'Dockyard'
   | 'Removed'
@@ -26,8 +27,19 @@ export type AvailabilityStatus =
   | 'collaborative_limited'
   | 'in_testing';
 
+export interface AdditionalOffer {
+  bundleId?: string | null;
+  currency: string;
+  price: number;
+  basePrice?: number | null;
+  couponEligible: boolean;
+  couponPrice: number | null;
+  steelEquivalent?: number | null;
+}
+
 export interface ShipAcquisitionData {
   category: AcquisitionCategory;
+  categories?: AcquisitionCategory[];
   status: AvailabilityStatus;
   primaryCurrency: 'coal' | 'steel' | 'gold' | 'paragon_xp' | 'credits' | 'community' | 'eventum' | `eventum_${number}` | 'free_xp' | 'none';
   price: number | null;
@@ -35,6 +47,11 @@ export interface ShipAcquisitionData {
   couponEligible: boolean;
   couponPrice: number | null;
   steelEquivalent?: number | null;
+  secondaryCurrency?: string | null;
+  secondaryPrice?: number | null;
+  secondaryBasePrice?: number | null;
+  secondaryCouponEligible?: boolean;
+  secondaryCouponPrice?: number | null;
   minDoubloonsRequired?: number | null;
   totalPhases?: number | null;
   isClone: boolean;
@@ -44,6 +61,7 @@ export interface ShipAcquisitionData {
   rarity?: string | null;
   bundleId?: string | null;
   bundleExpiry?: string | null;
+  otherOffers?: AdditionalOffer[];
 }
 
 export interface ShipArtilleryStats {
@@ -197,6 +215,7 @@ export interface CompactShipCatalogItem {
   } | null;
   acquisition?: {
     category: AcquisitionCategory;
+    categories?: AcquisitionCategory[];
     status: AvailabilityStatus;
     primaryCurrency: string;
     price: number | null;
@@ -204,6 +223,11 @@ export interface CompactShipCatalogItem {
     couponEligible: boolean;
     couponPrice: number | null;
     steelEquivalent: number | null;
+    secondaryCurrency?: string | null;
+    secondaryPrice?: number | null;
+    secondaryBasePrice?: number | null;
+    secondaryCouponEligible?: boolean;
+    secondaryCouponPrice?: number | null;
     minDoubloonsRequired?: number | null;
     totalPhases?: number | null;
     isClone: boolean;
@@ -211,6 +235,9 @@ export interface CompactShipCatalogItem {
     obtainMethodText?: string;
     availabilityNote?: string | null;
     rarity: string | null;
+    bundleId?: string | null;
+    bundleExpiry?: string | null;
+    otherOffers?: AdditionalOffer[];
   };
 }
 

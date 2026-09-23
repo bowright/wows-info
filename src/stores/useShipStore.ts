@@ -152,13 +152,17 @@ export function filterShips(
       }
       const match = filters.selectedAcquisitions.some((acq) => {
         const cat = ship.acquisition?.category;
+        const cats = ship.acquisition?.categories || (cat ? [cat] : []);
         if (acq === 'Clones') {
-          return ship.acquisition?.isClone === true || cat === 'Black Friday' || cat === 'Collaboration';
+          return ship.acquisition?.isClone === true || cat === 'Black Friday' || cat === 'Collaboration' || cats.includes('Black Friday') || cats.includes('Collaboration');
         }
         if (acq === 'Doubloons' || acq === 'Doubloon') {
-          return cat === 'Doubloon';
+          return cat === 'Doubloon' || cat === 'Coal / Doubloon' || cats.includes('Doubloon');
         }
-        return cat === acq;
+        if (acq === 'Coal') {
+          return cat === 'Coal' || cat === 'Coal / Doubloon' || cats.includes('Coal');
+        }
+        return cat === acq || cats.includes(acq as any);
       });
       if (!match) return false;
     }

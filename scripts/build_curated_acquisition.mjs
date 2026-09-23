@@ -207,18 +207,39 @@ const REMOVED_SHIPS_LIST = [
     prevPrice: null
   },
   {
-    nameMatch: 'PJSD508_Asashio',
+    nameMatch: 'PJSD518_Asashio',
     note: 'Removed in 0.10.5 due to 20km deepwater BB/CV torpedoes',
     rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
     prevCurrency: 'gold',
     prevPrice: 8900
   },
   {
-    nameMatch: 'E_Loewenhardt',
+    nameMatch: 'PGSA506_Erich_Loewenhardt',
     note: 'Removed in 0.10.5 due to fast planes and HE bomb alpha',
     rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
     prevCurrency: 'gold',
     prevPrice: 6800
+  },
+  {
+    nameMatch: 'PGSC506_Admiral_Graf_Spee',
+    note: 'Removed in 0.10.1 due to pocket battleship armor and heal power',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'gold',
+    prevPrice: 4700
+  },
+  {
+    nameMatch: 'PGSC706_HSF_Graf_Spee',
+    note: 'High School Fleet collaboration version of Graf Spee, removed from sale',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'gold',
+    prevPrice: 4700
+  },
+  {
+    nameMatch: 'PWSD510_Friesland',
+    note: 'Removed in 0.10.7 and replaced by Groningen for Pan-Europe tree',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'free_xp',
+    prevPrice: 1000000
   }
 ];
 
@@ -307,6 +328,18 @@ const DOCKYARD_SHIPS_LIST = [
     minDoubloonsRequired: 4500,
     totalPhases: 20,
     note: 'Event / Dockyard cruiser'
+  },
+  {
+    nameMatch: 'PGSD529_ZF_6',
+    minDoubloonsRequired: 5000,
+    totalPhases: 22,
+    note: 'Dockyard 0.10.4 (2021) reward ship'
+  },
+  {
+    nameMatch: 'PGSC529_Admiral_Schroder',
+    minDoubloonsRequired: 7000,
+    totalPhases: 30,
+    note: 'Dockyard 11.11 (2022) reward ship'
   }
 ];
 
@@ -365,6 +398,60 @@ const CLONE_PARENT_OVERRIDES = {
   'PISC908_East_Amalfi': 'PISC108_Amalfi',
   'PJSC905_East_Furutaka_1926': 'PJSC005_Furutaka_1926',
   'PRSB909_East_Navarin': 'PRSB509_Navarin',
+
+  // Golden variants
+  'PGSC920_Gold_Bremen': 'PGSC720_Bremen',
+  'PGSD709_GM_ZF_6': 'PGSD529_ZF_6',
+  'PGSD720_Gold_Georg_Hoffmann': 'PGSD110_Z_52',
+  'PHSC720_Gold_Prins_Van_Oranje': 'PHSC710_Prins_Van_Oranje',
+  'PJSB920_Gold_Aki': 'PJSB720_Aki',
+  'PJSC729_GW_Chikuma_2_Hyb': 'PJSC719_Chikuma_2_Hyb',
+  'PJSC749_GM_Suzuya': 'PJSC739_Suzuya',
+
+  // Piñata variants
+  'PASA920_Pinata_Essex': 'PASA020_Essex',
+  'PGSA910_Pinata_Richthofen': 'PGSA110_Manfred_Richthofen',
+  'PGSB930_Pinata_Schliefen': 'PGSB210_Schlieffen',
+  'PZSC908_Pinata_Irian': 'PZSC508_Irian',
+
+  // Post-Apocalyptic variants
+  'PGSB908_PostApoc_Zieten': 'PGSB208_Zieten',
+  'PRSC920_PostApoc_Petropavlovsk': 'PRSC310_Petropavlovsk',
+  'PWSD920_PostApoc_Smaland': 'PWSD610_Smaland',
+
+  // Cyber variants
+  'PISB810_Cyber_Ruggiero_di_Lauria': 'PISB510_Ruggiero_di_Lauria',
+  'PRSC818_Cyber_Dmitry_Pozharsky': 'PRSC558_Dmitry_Pozharsky',
+
+  // Olympian variants
+  'PISB709_Olympian_Marco_Polo': 'PISB509_Marco_Polo',
+  'PISB719_Olympian_Giuseppe_Verdi': 'PISB519_Giuseppe_Verdi',
+  'PISC707_Olympian_Francesco_Ferruccio': 'PISC517_Francesco_Ferruccio',
+
+  // From the Bridge / FBO variants
+  'PASD819_FBO_Johnston': 'PASD719_Johnston',
+  'PISB908_FBO_Roma': 'PISB508_Roma',
+  'PJSB710_FBO_Yamato': 'PJSB018_Yamato_1944',
+
+  // High School Fleet collab
+  'PGSC706_HSF_Graf_Spee': 'PGSC506_Admiral_Graf_Spee',
+  'PJSB715_HSF_Hiei': 'PJSB007_Kongo_1942',
+  'PJSD708_HSF_Harekaze': 'PJSD208_Kagero',
+  'PJSD528_Harekaze_2': 'PJSD208_Kagero',
+
+  // Dragon collab
+  'PJSC717_Yellow_Dragon': 'PJSC008_Myoko_1945',
+  'PJSC727_Blue_Dragon': 'PJSC008_Myoko_1945',
+
+  // Journey to the West
+  'PZSA508_Saipan_Sanzang': 'PASA528_Saipan',
+  'PZSB509_Izumo_Bajie': 'PJSB021_Izumo_1938',
+  'PZSB519_Alsace_Wujing': 'PFSB109_Alsace',
+  'PZSC518_Martel_Wukong': 'PFSC108_Charles_Martel',
+
+  // Event / Special variants
+  'PJSC929_NL_Chikuma_2_Hyb': 'PJSC719_Chikuma_2_Hyb',
+  'PJSD889_Kitakaze_PR': 'PJSD219_Kitakaze',
 
   // Test/evaluation and variant hulls with a released parent.
   'PFSD820_Kleber_TE': 'PFSD110_Kleber',
@@ -543,20 +630,34 @@ for (const s of ships) {
   );
 
   if ((isCollab || isKnownVariant) && !name.includes('_Black_')) {
-    category = 'Collaboration';
-    status = 'collaborative_limited';
+    if (category !== 'Removed') {
+      category = 'Collaboration';
+      status = 'collaborative_limited';
+      obtainMethodText = 'Collaboration Event (Limited Time)';
+      primaryCurrency = 'gold';
+    }
     isClone = true;
-    primaryCurrency = 'gold';
     price = null;
     basePrice = null;
     couponEligible = false;
     couponPrice = null;
-    obtainMethodText = 'Collaboration Event (Limited Time)';
 
     const parentShip = findCloneParent(name);
     if (parentShip) {
       cloneOfShipId = parentShip.id;
     }
+  }
+
+  // 7. Permanent Campaign Reward (Shinonome)
+  if (name === 'PJSD706_Shinonome') {
+    category = 'Clan/Ranked Reward';
+    status = 'clan_ranked_exclusive';
+    primaryCurrency = 'none';
+    price = null;
+    basePrice = null;
+    couponEligible = false;
+    couponPrice = null;
+    obtainMethodText = 'Permanent Campaign Reward ("Honorable Service")';
   }
 
   // Evaluation-only variants still need clone semantics so they can be

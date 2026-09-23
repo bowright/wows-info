@@ -200,7 +200,7 @@ export function matchesAcquisitionCategory(
   const current = (shipCategory || 'Tech Tree').toLowerCase().trim();
 
   if (target === 'doubloons' || target === 'doubloon') {
-    return current === 'doubloon' || current === 'doubloons';
+    return current === 'doubloon' || current === 'doubloons' || current.includes('doub');
   }
   if (target === 'tech tree' || target === 'techtree') {
     return current === 'tech tree' || current === 'techtree';
@@ -215,7 +215,7 @@ export function matchesAcquisitionCategory(
     return current === 'steel';
   }
   if (target === 'coal') {
-    return current === 'coal';
+    return current === 'coal' || current.includes('coal');
   }
   if (target === 'removed' || target === 'rare') {
     return current === 'removed';
