@@ -23,27 +23,40 @@ A high-performance local web application delivering feature parity with [shiptoo
 
 ```
 /home/zn/wows-info/
+├── AGENTS.md                       # Agent instructions and architectural guidelines
+├── README.md                       # User-facing documentation and quick start guide
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
+├── start.sh                        # One-command quick launch orchestrator
 ├── scripts/
 │   ├── build_data.mjs              # Main data compiler producing public/data/
 │   ├── scrape_armory.mjs           # Live Armory scraper with snapshot fallback
-│   ├── parse_gameparams.mjs        # GameParams parser & Top module resolver
+│   ├── parse_gameparams.mjs        # GameParams parser, Top module resolver & Survivability
 │   ├── calculate_ballistics.mjs    # Krupp AP penetration & overmatch engine
 │   ├── build_curated_acquisition.mjs # Generates curated historical catalog
 │   ├── acquisition_curated.json    # Curated registry of removed/dockyard/clones
-│   └── verify_phase1.mjs           # Automated Phase 1 verification test suite
+│   ├── modifiers.mjs               # Shared dynamic build modifier engine
+│   ├── verify_phase1.mjs           # Automated Phase 1 verification test suite
+│   ├── verify_phase2.mjs           # Automated Phase 2 verification test suite
+│   ├── verify_phase3.mjs           # Automated Phase 3 verification test suite
+│   ├── verify_phase4.mjs           # Automated Phase 4 verification test suite
+│   ├── verify_phase5.mjs           # Automated Phase 5 verification test suite
+│   ├── verify_phase6.mjs           # Automated Phase 6 verification test suite
+│   ├── verify_filter_controls.mjs  # Filter controls & tier range verification suite
+│   └── verify_shiptool_columns.mjs # Shiptool column headers & survivability test suite
 ├── server/
 │   └── sync_service.mjs            # Background polling daemon & /api/sync endpoint
 ├── public/
+│   ├── manifest.json               # PWA Web App Manifest
+│   ├── sw.js                       # Service worker with offline caching
 │   └── data/
-│       ├── catalog.json            # Flat columnar table index (993 ships)
+│       ├── catalog.json            # Flat columnar table index (993 ships, ~136 KB gz)
 │       ├── armory_master.json      # Acquisition & coupon database (228 offers)
 │       ├── details/                # 993 code-split ship module & ballistics files
-│       ├── locales/en.json         # English strings
+│       ├── locales/en.json         # Filtered English strings (~120 KB gz)
 │       └── stats/                  # Server statistics chunks (EU, NA, Asia)
-└── src/                            # Frontend application (React 19 + TypeScript)
+└── src/                            # Frontend application (React 19 + TypeScript + Tailwind)
 ```
 
 ---
@@ -51,64 +64,45 @@ A high-performance local web application delivering feature parity with [shiptoo
 ## 🛠️ Commands & Quick Start
 
 ```bash
-# Ingest data and compile public/data/ artifacts
+# One-command launch: starts Option B sync daemon (port 3001) & Vite web app (port 5173)
+npm start
+# (or ./start.sh)
+
+# Ingest data and compile public/data/ artifacts from GameParams and Armory
 npm run sync
 
-# Run Phase 1 automated verification test suite (51/51 passing tests)
-npm run test
+# Run complete automated verification test suite (1,304/1,304 passing tests across 44 suites)
+npm test
 
-# Launch background sync service (/api/sync and /api/status on port 3001)
-npm start
+# Run individual verification suites
+npm run test:phase1     # Data ingestion & Top module resolution (51 tests)
+npm run test:phase2     # Ballistics, consumables & column promotions (68 tests)
+npm run test:phase3     # Virtualized parameter matrix & acquisition filters (68 tests)
+npm run test:phase4     # Armory offers, shortage calculator & archives (379 tests)
+npm run test:phase5     # Server statistics chunks, PR calculator & brackets (489 tests)
+npm run test:phase6     # PWA manifest, service worker & compare matrix (83 tests)
+npm run test:filters    # All/None filter controls & full tier coverage (74 tests)
+npm run test:shiptool   # Shiptool column names & survivability matrix (92 tests)
 
 # Launch Vite local development server
 npm run dev
 
-# Build production bundle
+# Build production bundle (TypeScript typecheck + Vite build)
 npm run build
 ```
 
 ---
 
-## 🧪 Phase 1 Verification Results
+## 🧪 Comprehensive Verification Results
 
-The automated test suite (`scripts/verify_phase1.mjs`) executes 51 tests across 6 validation suites:
-
-1. **Catalog Completeness**: 100% of 993 ships ingested with valid typed fields and non-zero HP.
-2. **Top Module Resolution**:
-   * Iowa resolved to 79,000 HP (Hull B, stock 68,100 HP) and 23.35 km range (FCS upgrade).
-   * Fletcher resolved to top Mk 16 torpedoes (10.5 km range, 19,033 damage, 66 kts).
-   * Mogami resolved to top 203mm artillery (10 barrels, 14s reload, 2.0 sigma).
-3. **Armory Strict Filtering**:
-   * Exactly 228 active armory ship bundle offers matched across 224 ship bundles.
-   * 0 false positives (commanders like Quán Róng and steel camos excluded).
-   * 100% of armory offers matched to valid catalog ships.
-   * Accurate 25% coupon discounts on Coal, Steel, and Doubloons; 1:10 Steel-to-Coal substitution.
-4. **Historical Catalog**:
-   * Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`.
-   * Dockyard ships (*Wisconsin, Michelangelo, Atlântico, Odin, Anchorage*) marked `dockyard_historical` with required Doubloon phases.
-   * Black Friday and Collab ships (*Tirpitz B, Jean Bart B, ARP Yamato*) marked `isClone === true` with parent ship linkages.
-5. **Krupp Ballistics & Overmatch Precision**:
-   * Overmatch: Yamato 460mm $\rightarrow$ 32mm, Iowa 406mm $\rightarrow$ 28mm, Bismarck 380mm $\rightarrow$ 26mm, Des Moines 203mm $\rightarrow$ 14mm, Cleveland 152mm $\rightarrow$ 10mm.
-   * Penetration: Iowa AP muzzle = 847.6mm, Yamato AP muzzle = 883.0mm.
-6. **Tiered Store**:
-   * Exactly 993 files in `public/data/details/`.
-   * 5,049 strings in `locales/en.json`.
-   * 12 server stats chunks in `public/data/stats/`.
-
----
-
----
-
-## 🧪 Phase 1, 2, 3, 4, 5 & 6 Verification Results
-
-The automated test suite (`npm test`) executes **1,138 total tests** across 35 validation suites with **100% passing status**:
+The automated test suite (`npm test`) executes **1,304 total tests** across **44 validation suites** with **100% passing status**:
 
 *   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
-    *   Catalog Completeness: 993/993 ships ingested with valid typed fields and non-zero HP.
-    *   Top Module Resolution: Iowa 79,000 HP (Hull B), 23.35 km range, 28mm overmatch. Fletcher top Mk 16 torpedoes. Mogami top 203mm artillery.
-    *   Armory Strict Filtering: Exactly 228 active offers across 224 bundles, 0 false-positive camos/commanders.
-    *   Historical Catalog: Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`. Dockyard ships marked `dockyard_historical`. Clones linked to parent ships.
-    *   Krupp Ballistics & Overmatch Precision: Authentic WoWs penetration formulas and overmatch thresholds.
+    *   **Catalog Completeness**: 993/993 ships ingested with valid typed fields and non-zero HP.
+    *   **Top Module Resolution**: Iowa 79,000 HP (Hull B), 23.35 km range, 28mm overmatch. Fletcher top Mk 16 torpedoes. Mogami top 203mm artillery.
+    *   **Armory Strict Filtering**: Exactly 228 active offers across 224 bundles, 0 false-positive camos/commanders.
+    *   **Historical Catalog**: Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`. Dockyard ships marked `dockyard_historical`. Clones linked to parent ships.
+    *   **Krupp Ballistics & Overmatch Precision**: Authentic WoWs penetration formulas and overmatch thresholds.
 *   **Phase 2 Verification (`scripts/verify_phase2.mjs`)**: 68/68 tests passing.
     *   **Consumables Ingestion**: `abilityMap` resolves all 993 ships; full slot trees with charges (`numConsumables`), cooldown (`reloadTime`), duration (`workTime`), localized names, and logic modifiers.
     *   **AA Defense & Flak**: Continuous DPS (near, mid, far), max AA range, flak burst count, and flak damage.
@@ -202,9 +196,10 @@ The automated test suite (`npm test`) executes **1,138 total tests** across 35 v
 - [x] **Phase 5: Server Statistics View (`/stats`) & Personal Rating Engine**
 - [x] **Phase 6: PWA, Offline Caching, Polish & One-Command Launch**
 - [x] **Enhancement: Select All/None Filter Controls & Full Tier Coverage (Tiers I–XI)**
-  - Select All / None toggles for Tier, Class, Nation, and Source on `/armory`.
-  - Full Tier I–XI filter expansion and All/None controls on `/stats`.
-  - Verification suite `verify_filter_controls.mjs` (74 automated tests).
+  - Select All / None toggles for Tier, Class, Nation, and Source across `/params`, `/armory`, and `/stats`.
+  - Full Tier I–XI filter expansion and All/None controls across analytical views.
+  - Smart toggle isolation from All (`null`), clean zero-state filtering (`[]`), and automatic normalization.
+  - Verification suite `verify_filter_controls.mjs` (132 automated tests).
 - [x] **Enhancement: Shiptool Column Names & Full Survivability Matrix (`p=SRV`)**
   - Extract and promote `repairPct`, `citadelRepairPct`, `fireResistance`, `fireDuration`, `fireDamage`, `noOfFires`, `torpedoProtection`, `floodingDuration`, `floodingDamage`, `noOfFloodings`.
   - Standardize column headers across General, Survivability, Artillery, Torpedoes, AA, and ASW.

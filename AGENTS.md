@@ -24,32 +24,48 @@
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
-├── tailwind.config.ts
+├── start.sh                        # One-command quick launch orchestrator
 ├── scripts/
 │   ├── build_data.mjs              # Main compiler producing public/data/
 │   ├── scrape_armory.mjs           # Scrapes and normalizes live Armory bundles
-│   ├── parse_gameparams.mjs        # Extracts ship components and resolves Top modules
-│   └── calculate_ballistics.mjs    # Generates Krupp AP penetration and trajectories
+│   ├── parse_gameparams.mjs        # Extracts ship components, resolves Top modules & Survivability
+│   ├── calculate_ballistics.mjs    # Generates Krupp AP penetration and trajectories
+│   ├── build_curated_acquisition.mjs # Generates curated historical catalog
+│   ├── acquisition_curated.json    # Curated registry of removed/dockyard/clones
+│   ├── modifiers.mjs               # Shared dynamic build modifier engine
+│   ├── verify_phase1.mjs           # Data pipeline & Top module resolution tests
+│   ├── verify_phase2.mjs           # Ballistics & consumable ingestion tests
+│   ├── verify_phase3.mjs           # Virtualized table & filter matrix tests
+│   ├── verify_phase4.mjs           # Armory offers & shortage calculator tests
+│   ├── verify_phase5.mjs           # Server statistics & PR calculator tests
+│   ├── verify_phase6.mjs           # PWA, offline caching & compare view tests
+│   ├── verify_filter_controls.mjs  # All/None filter controls & tier coverage tests
+│   └── verify_shiptool_columns.mjs # Shiptool column headers & survivability tests
 ├── server/
 │   └── sync_service.mjs            # Local sync API and background polling service
 ├── public/
+│   ├── manifest.json               # PWA Web App Manifest
+│   ├── sw.js                       # Service worker with offline caching
 │   └── data/
-│       ├── catalog.json            # Flat columnar table index (~320 KB gz)
+│       ├── catalog.json            # Flat columnar table index (993 ships, ~136 KB gz)
 │       ├── armory_master.json      # Full acquisition registry and coupon models
-│       ├── details/                # Code-split ship module and consumable trees
-│       ├── locales/                # Localized strings (en.json, etc.)
+│       ├── details/                # 993 code-split ship module and ballistics files
+│       ├── locales/en.json         # Localized English strings (~120 KB gz)
 │       └── stats/                  # Chunked server statistics by server & span
 └── src/
     ├── main.tsx
     ├── App.tsx
     ├── types/                      # TypeScript definitions (Ship, Acquisition, Stats)
-    ├── stores/                     # Zustand stores (filters, modifiers, user resources)
+    ├── stores/                     # Zustand stores (useShipStore, useArmoryStore, useStatsStore)
+    ├── utils/                      # Modifiers, PR calculator, ballistics, comparison matrix, useOnlineStatus
     ├── components/
-    │   ├── common/                 # Header, Nav, Badges, Tooltips, Modals
+    │   ├── common/                 # Header, Nav, AcquisitionBadge, Tooltips, Modals
     │   ├── table/                  # VirtualizedTable, PinnedColumns, ColumnHeaders
-    │   ├── filters/                # Nation, Tier, Class, Acquisition filter pills
-    │   ├── ballistics/             # SVG Penetration and Trajectory curves
-    │   └── armory/                 # ArmoryCard, CouponToggle, ShortageCalculator
+    │   ├── filters/                # FilterBar with Nation, Tier, Class, Source pills & All/None
+    │   ├── modifiers/              # BuildModifierDrawer (slots 1-6, commander skills, signals)
+    │   ├── ballistics/             # BallisticsChart (SVG Krupp AP penetration curves)
+    │   ├── compare/                # CompareBar, ShipDuel comparison matrix
+    │   └── armory/                 # ArmoryCard, ShortageCalculator, CouponToggle
     └── views/
         ├── ShipParametersView.tsx  # /params
         ├── ServerStatsView.tsx     # /stats
@@ -75,7 +91,11 @@ All implementation across phases must adhere to the **Phased Implementation & In
 ---
 
 ## Build & Run Commands
+- `npm start` or `./start.sh` — One-command launch (sync daemon on port 3001, Vite app on port 5173).
 - `npm run dev` — Launch Vite local development server.
-- `npm run build` — Build production bundle.
+- `npm run build` — Build production bundle (`tsc && vite build`).
 - `npm run sync` — Run data ingestion and update `public/data/` from live sources.
-- `npm run test` — Run verification test suite.
+- `npm test` — Run complete automated verification test suite (1,304/1,304 passing tests across 44 suites).
+- `npm run test:phase1` .. `npm run test:phase6` — Run individual phase verification suites.
+- `npm run test:filters` — Run filter controls & tier coverage verification suite.
+- `npm run test:shiptool` — Run shiptool column headers & survivability matrix verification suite.
