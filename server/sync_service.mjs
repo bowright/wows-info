@@ -8,7 +8,7 @@ import { buildData } from '../scripts/build_data.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || (process.env.NODE_ENV === 'production' ? '5173' : '3001'), 10);
 const SYNC_INTERVAL_MS = parseInt(process.env.SYNC_INTERVAL_MS || String(6 * 60 * 60 * 1000), 10); // Default: 6 hours
 
 // In-memory sync state
@@ -148,6 +148,22 @@ export function createSyncServer() {
 
   app.post('/api/sync', handleSync);
   app.get('/api/sync', handleSync);
+
+  // Dynamic data updates written to public/data take priority so sync updates are immediately live
+  const publicDataPath = path.resolve(__dirname, '../public/data');
+  if (fs.existsSync(publicDataPath)) {
+    app.use('/data', express.static(publicDataPath));
+  }
+
+  // Serve static production build if dist/ exists
+  const distPath = path.resolve(__dirname, '../dist');
+  if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) return next();
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
 
   return app;
 }

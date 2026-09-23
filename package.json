@@ -16,7 +16,8 @@
     "test:phase6": "node scripts/verify_phase6.mjs",
     "test:filters": "node scripts/verify_filter_controls.mjs",
     "test:shiptool": "node scripts/verify_shiptool_columns.mjs",
-    "start": "bash ./start.sh"
+    "start": "bash ./start.sh",
+    "serve": "NODE_ENV=production node server/sync_service.mjs"
   },
   "dependencies": {
     "@tanstack/react-table": "^8.20.5",
