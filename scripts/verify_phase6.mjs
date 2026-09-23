@@ -80,6 +80,9 @@ async function runVerification() {
   assert(swContent.includes("addEventListener('install'"), 'sw.js registers install event listener');
   assert(swContent.includes("addEventListener('activate'"), 'sw.js registers activate event listener');
   assert(swContent.includes("addEventListener('fetch'"), 'sw.js registers fetch event listener');
+  assert(swContent.includes("wows-info-data-v2"), 'sw.js uses the post-ShipTool data cache generation');
+  assert(!swContent.includes("wows-info-data-v1"), 'sw.js does not retain the pre-ShipTool data cache generation');
+  assert(swContent.includes("url.pathname === '/data/stats/manifest.json'"), 'sw.js network-refreshes the statistics manifest pointer');
 
   assert(swContent.includes('/data/catalog.json'), 'sw.js pre-caches core catalog artifact');
   assert(swContent.includes('/data/locales/en.json'), 'sw.js pre-caches core localized strings');

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "source": "shiptool",
+  "sourceVersion": "0.15.7",
+  "fetchedAt": "2026-09-23T04:24:21.404Z",
+  "lastAttemptAt": "2026-09-23T04:36:22.196Z",
+  "lastSuccessfulFetchAt": "2026-09-23T04:24:21.404Z",
+  "stale": false,
+  "lastError": null,
+  "catalogFingerprint": "233dcb4da0bfe4dda113addbeb9a8c68946add6607e0bf0489d83ceeaaa0ac32",
+  "storagePath": "",
+  "basePath": "/data/stats",
+  "entryUrl": "https://shiptool.st/assets/index-BA54vkOV.js",
+  "entryEtag": "W/\"39359-1a096aae7d0\"",
+  "entryLastModified": "Sat, 12 Sep 2026 17:29:38 GMT",
+  "spans": [
+    "1",
+    "3",
+    "all"
+  ],
+  "regions": [
+    "eu",
+    "com",
+    "asia"
+  ],
+  "assets": {
+    "stats-eu-1.json": {
+      "asset": "stats-eu-1-jO5TViB5.js",
+      "url": "https://shiptool.st/assets/stats-eu-1-jO5TViB5.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-eu-3.json": {
+      "asset": "stats-eu-3-BWtdf0cR.js",
+      "url": "https://shiptool.st/assets/stats-eu-3-BWtdf0cR.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-eu-all.json": {
+      "asset": "stats-eu-all-BBd1Cf66.js",
+      "url": "https://shiptool.st/assets/stats-eu-all-BBd1Cf66.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-com-1.json": {
+      "asset": "stats-com-1-CdaOPqxK.js",
+      "url": "https://shiptool.st/assets/stats-com-1-CdaOPqxK.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-com-3.json": {
+      "asset": "stats-com-3-_IzuFLzy.js",
+      "url": "https://shiptool.st/assets/stats-com-3-_IzuFLzy.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-com-all.json": {
+      "asset": "stats-com-all-B-lE5x__.js",
+      "url": "https://shiptool.st/assets/stats-com-all-B-lE5x__.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-asia-1.json": {
+      "asset": "stats-asia-1-DjZZDv3q.js",
+      "url": "https://shiptool.st/assets/stats-asia-1-DjZZDv3q.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-asia-3.json": {
+      "asset": "stats-asia-3-DjaHEZMM.js",
+      "url": "https://shiptool.st/assets/stats-asia-3-DjaHEZMM.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    },
+    "stats-asia-all.json": {
+      "asset": "stats-asia-all-CYacfiGv.js",
+      "url": "https://shiptool.st/assets/stats-asia-all-CYacfiGv.js",
+      "version": "0.15.7",
+      "lastModified": "Sat, 12 Sep 2026 17:29:38 GMT"
+    }
+  },
+  "totalChunks": 9
+}

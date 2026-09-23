@@ -163,8 +163,10 @@ async function runVerification() {
   const enLocale = JSON.parse(fs.readFileSync(enLocalePath, 'utf8'));
   assert(Object.keys(enLocale).length >= 5000, `locales/en.json contains ${Object.keys(enLocale).length} English strings`);
 
-  const statsFiles = fs.readdirSync(path.join(PUBLIC_DATA, 'stats'));
-  assert(statsFiles.length === 12, `public/data/stats/ contains 12 server stats chunks (found ${statsFiles.length})`);
+  const statsDir = path.join(PUBLIC_DATA, 'stats');
+  const statsFiles = fs.readdirSync(statsDir).filter((file) => /^stats-(eu|com|asia)-(1|3|all)\.json$/.test(file));
+  assert(statsFiles.length === 9, `public/data/stats/ contains 9 ShipTool chunks (found ${statsFiles.length})`);
+  assert(fs.existsSync(path.join(statsDir, 'manifest.json')), 'ShipTool statistics manifest exists');
 
   console.log('\n====================================================');
   console.log(`  Verification Summary: ${passedTests} passed, ${failedTests} failed (${totalTests} total tests)`);

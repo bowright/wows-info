@@ -17,7 +17,7 @@ A high-performance local web application delivering feature parity with [shiptoo
     *   **Armory Master (`armory_master.json`)**: Complete acquisition database with active bundle pricing, 25% coupon models, Steel-to-Coal substitutions, and historical registry.
     *   **Code-Split Details (`details/[shipId].json`)**: 993 modular JSON files containing full module trees, consumables, and Krupp AP penetration curves.
     *   **Lean Locales (`locales/en.json`)**: Filtered English translation payload (5,049 keys, ~642 KB uncompressed, ~120 KB gzip), stripping 80%+ of unused translation bloat.
-    *   **Server Statistics (`stats/`)**: Precomputed battle-weighted server stats across EU, NA, and Asia.
+    *   **Server Statistics (`stats/`)**: ShipTool-sourced battle-weighted server stats across EU, NA, and Asia, refreshed by the background sync service and cached locally for offline use.
 *   **Top-Module Resolution**: Automatically resolves top configurations as default (Hull B/C, upgraded artillery, top torpedoes, FCS range multipliers).
 *   **Ballistics & Overmatch Precision**: Krupp AP formula ($\text{Krupp} \cdot (\text{Mass} \cdot v^2)^{0.69} \cdot \text{Diameter}^{-1.07} \cdot 10^{-7}$) and dynamic overmatch verification ($\lfloor\text{Caliber}/14.3\rfloor$).
 *   **Strict Armory Filtering**: Enforces strict entitlement checking (`type === 'ship'`), completely eliminating commander and camo false positives.
@@ -47,6 +47,8 @@ A high-performance local web application delivering feature parity with [shiptoo
 │   ├── verify_phase3.mjs           # Automated Phase 3 verification test suite
 │   ├── verify_phase4.mjs           # Automated Phase 4 verification test suite
 │   ├── verify_phase5.mjs           # Automated Phase 5 verification test suite
+│   ├── sync_shiptool_stats.mjs     # ShipTool public stats importer and cache updater
+│   ├── verify_shiptool_stats.mjs   # ShipTool importer and snapshot verification
 │   ├── verify_phase6.mjs           # Automated Phase 6 verification test suite
 │   ├── verify_filter_controls.mjs  # Filter controls & tier range verification suite
 │   └── verify_shiptool_columns.mjs # Shiptool column headers & survivability test suite
@@ -60,7 +62,7 @@ A high-performance local web application delivering feature parity with [shiptoo
 │       ├── armory_master.json      # Acquisition & coupon database (228 offers)
 │       ├── details/                # 993 code-split ship module & ballistics files
 │       ├── locales/en.json         # Filtered English strings (~120 KB gz)
-│       └── stats/                  # Server statistics chunks (EU, NA, Asia)
+│       └── stats/                  # ShipTool chunks: EU/NA/Asia × 1/3/all + manifest
 └── src/                            # Frontend application (React 19 + TypeScript + Tailwind)
 ```
 
@@ -116,10 +118,10 @@ npm start
 # Standalone production server on port 5173 (used on azuremsia)
 npm run serve
 
-# Ingest data and compile public/data/ artifacts from GameParams and Armory
+# Ingest GameParams/Armory data and refresh ShipTool server-statistics snapshots
 npm run sync
 
-# Run complete automated verification test suite (1,362/1,362 passing tests across 44 suites)
+# Run complete automated verification test suite
 npm test
 
 # Run individual verification suites

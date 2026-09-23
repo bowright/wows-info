@@ -28,6 +28,7 @@ The canonical production host for `wows-info` is the **`azuremsia` server** (`10
 - **Table Engine**: `@tanstack/react-table` (v8) + `@tanstack/react-virtual` for 60fps virtualized rendering across 1,000+ ships and 60+ parameters.
 - **State Management**: Zustand for client filters, build modifiers, and resource calculations; URL Search Params for deep linking and shareable URLs.
 - **Data Pipeline**: Node.js ESM scripts (`scripts/`) compiling raw GameParams, live Armory snapshots, and server performance metrics into split, columnar JSON artifacts (`catalog.json`, `details/[id].json`, `armory_master.json`, `stats/*.json`).
+- **Server Statistics Source**: `scripts/sync_shiptool_stats.mjs` imports ShipTool’s public EU/NA/Asia snapshots for the 1-update, 3-update, and all-time spans, records upstream provenance in `public/data/stats/manifest.json`, and preserves the last known-good cache on upstream failures.
 - **Sync Engine**: Embedded Express/Node local API endpoint (`/api/sync`) and client background worker for polling Armory updates.
 
 ---
@@ -53,7 +54,9 @@ The canonical production host for `wows-info` is the **`azuremsia` server** (`10
 │   ├── verify_phase2.mjs           # Ballistics & consumable ingestion tests
 │   ├── verify_phase3.mjs           # Virtualized table & filter matrix tests
 │   ├── verify_phase4.mjs           # Armory offers & shortage calculator tests
+│   ├── sync_shiptool_stats.mjs     # ShipTool public server-statistics importer/cache updater
 │   ├── verify_phase5.mjs           # Server statistics & PR calculator tests
+│   ├── verify_shiptool_stats.mjs   # ShipTool importer and snapshot tests
 │   ├── verify_phase6.mjs           # PWA, offline caching & compare view tests
 │   ├── verify_filter_controls.mjs  # All/None filter controls & tier coverage tests
 │   └── verify_shiptool_columns.mjs # Shiptool column headers & survivability tests
@@ -67,7 +70,7 @@ The canonical production host for `wows-info` is the **`azuremsia` server** (`10
 │       ├── armory_master.json      # Full acquisition registry and coupon models
 │       ├── details/                # 993 code-split ship module and ballistics files
 │       ├── locales/en.json         # Localized English strings (~120 KB gz)
-│       └── stats/                  # Chunked server statistics by server & span
+│       └── stats/                  # ShipTool chunks by server & public span + manifest
 └── src/
     ├── main.tsx
     ├── App.tsx

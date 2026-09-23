@@ -73,16 +73,14 @@ const SERVER_OPTIONS: Array<{ id: StatsServer; label: string; sub: string }> = [
 const SPAN_OPTIONS: Array<{ id: StatsTimespan; label: string; sub: string }> = [
   { id: '1', label: 'Current Update (1)', sub: 'Recent 4 weeks meta' },
   { id: '3', label: '3 Updates (Quarterly)', sub: 'Last ~12 weeks' },
-  { id: '12', label: '12 Updates (Annual)', sub: '1-Year historical' },
   { id: 'all', label: 'All Time', sub: 'Cumulative baseline' },
 ];
 
 const BRACKET_OPTIONS: Array<{ id: SkillBracket; label: string; sub: string }> = [
   { id: 'all', label: 'All Players', sub: 'Population aggregate' },
-  { id: 'low', label: 'Below Average', sub: '< 47.5% WR' },
-  { id: 'medium', label: 'Average', sub: '47.5% – 52.5% WR' },
-  { id: 'high', label: 'Above Average', sub: '52.5% – 60% WR' },
-  { id: 'top1', label: 'Top 1% Unicum', sub: '> 60% WR' },
+  { id: 'low', label: 'Low Skill', sub: 'ShipTool low-skill group' },
+  { id: 'medium', label: 'Medium Skill', sub: 'ShipTool medium-skill group' },
+  { id: 'high', label: 'High Skill', sub: 'ShipTool high-skill group' },
 ];
 
 // Heatmap color generator
@@ -121,6 +119,10 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     error,
     currentStats,
     lastLoadedKey,
+    statsSource,
+    statsSourceVersion,
+    statsLastUpdated,
+    statsStale,
     setServer,
     setSpan,
     setBracket,
@@ -591,7 +593,12 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
                 )}
               </h1>
               <p className="text-xs text-slate-400">
-                Battle-weighted win rates, average damage, XP, and authentic WoWs Personal Rating benchmarks
+                ShipTool battle-weighted win rates, average damage, XP, and local PR estimates
+              </p>
+              <p className={`text-[10px] ${statsStale ? 'text-amber-400' : 'text-slate-500'}`}>
+                {statsStale ? 'Stale local cache' : statsSource || 'Local cache'}
+                {statsSourceVersion ? ` · v${statsSourceVersion}` : ''}
+                {statsLastUpdated ? ` · ${new Date(statsLastUpdated).toLocaleDateString()}` : ''}
               </p>
             </div>
           </div>
@@ -885,7 +892,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
 
         <div className="text-[11px] text-slate-500 flex items-center gap-1.5 shrink-0">
           <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>Formula: Authentic WoWs Community PR Model</span>
+          <span>PR: local community-formula estimate</span>
         </div>
       </div>
 

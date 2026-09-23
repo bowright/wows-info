@@ -44,6 +44,10 @@ export interface StatsStoreState extends StatsFilters {
   isLoading: boolean;
   error: string | null;
   lastLoadedKey: string | null;
+  statsSource: string | null;
+  statsSourceVersion: string | null;
+  statsLastUpdated: string | null;
+  statsStale: boolean;
 
   // Actions
   setServer: (server: StatsServer | 'na') => Promise<void>;
@@ -219,6 +223,20 @@ export function matchesAcquisitionCategory(
   return current === target;
 }
 
+async function catalogMatchesFingerprint(expectedFingerprint: string | null | undefined): Promise<boolean> {
+  if (!expectedFingerprint || !globalThis.crypto?.subtle) return false;
+  try {
+    const response = await fetch('/data/catalog.json', { cache: 'no-store' });
+    if (!response.ok) return false;
+    const bytes = await response.arrayBuffer();
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+    const actual = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return actual === expectedFingerprint;
+  } catch {
+    return false;
+  }
+}
+
 export const useStatsStore = create<StatsStoreState>((set, get) => ({
   selectedServer: 'eu',
   selectedSpan: '1',
@@ -233,6 +251,10 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
   isLoading: false,
   error: null,
   lastLoadedKey: null,
+  statsSource: null,
+  statsSourceVersion: null,
+  statsLastUpdated: null,
+  statsStale: false,
 
   setServer: async (server) => {
     const norm = normalizeServer(server);
@@ -307,6 +329,33 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
     const span = spanOverride || get().selectedSpan;
     const cacheKey = `${srv}-${span}`;
 
+    let statsManifest: {
+      source?: string;
+      sourceVersion?: string | null;
+      basePath?: string;
+      catalogFingerprint?: string;
+      lastSuccessfulFetchAt?: string | null;
+      stale?: boolean;
+    } | null = null;
+    try {
+      const manifestResponse = await fetch('/data/stats/manifest.json', { cache: 'no-store' });
+      if (manifestResponse.ok) statsManifest = await manifestResponse.json();
+    } catch {
+      // The stats contract cannot be verified without its provenance manifest.
+    }
+
+    if (!statsManifest?.catalogFingerprint || !statsManifest.basePath) {
+      const errorMsg = 'Statistics provenance manifest is unavailable; refresh the data sync';
+      set({ isLoading: false, error: errorMsg });
+      return null;
+    }
+
+    if (!(await catalogMatchesFingerprint(statsManifest?.catalogFingerprint))) {
+      const errorMsg = 'Statistics cache does not match the current catalog; refresh the data sync';
+      set({ isLoading: false, error: errorMsg });
+      return null;
+    }
+
     // 1. Check client-side memory cache
     const cached = get().statsCache[cacheKey];
     if (cached && cached.stats && cached.stats.length > 0) {
@@ -316,18 +365,18 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
         currentStats: cached.stats,
         lastLoadedKey: cacheKey,
         error: null,
+        statsSource: cached.source || statsManifest?.source || null,
+        statsSourceVersion: cached.sourceVersion || statsManifest?.sourceVersion || null,
+        statsLastUpdated: statsManifest?.lastSuccessfulFetchAt || cached.updatedAt || null,
+        statsStale: Boolean(statsManifest?.stale),
       });
       return cached;
     }
 
     set({ isLoading: true, error: null });
 
-    const possiblePaths = [
-      `/data/stats/stats-${srv}-${span}.json`,
-      `/data/stats/${srv}-${span}.json`,
-      `/data/stats/stats-${srv === 'com' ? 'na' : srv}-${span}.json`,
-      `/data/stats/${srv === 'com' ? 'na' : srv}-${span}.json`,
-    ];
+    const manifestBasePath = statsManifest.basePath.replace(/\/$/, '');
+    const possiblePaths = [`${manifestBasePath}/stats-${srv}-${span}.json`];
 
     let loadedData: StatsChunkData | null = null;
 
@@ -360,6 +409,10 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
       selectedSpan: span,
       currentStats: loadedData!.stats,
       lastLoadedKey: cacheKey,
+      statsSource: loadedData!.source || statsManifest?.source || null,
+      statsSourceVersion: loadedData!.sourceVersion || statsManifest?.sourceVersion || null,
+      statsLastUpdated: statsManifest?.lastSuccessfulFetchAt || loadedData!.updatedAt || null,
+      statsStale: Boolean(statsManifest?.stale),
       statsCache: {
         ...state.statsCache,
         [cacheKey]: loadedData!,
@@ -446,7 +499,8 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
           ...bracketMetrics,
           pr: calculatedPr,
         };
-      });
+      })
+      .filter((row) => selectedBracket === 'all' || row.battles > 0);
   },
 
   getAggregateMetrics: () => {

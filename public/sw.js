@@ -3,8 +3,8 @@
  * Service Worker: Offline Caching & Stale-While-Revalidate Engine
  */
 
-const STATIC_CACHE = 'wows-info-static-v1';
-const DATA_CACHE = 'wows-info-data-v1';
+const STATIC_CACHE = 'wows-info-static-v2';
+const DATA_CACHE = 'wows-info-data-v2';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -83,7 +83,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Data artifacts (/data/): Stale-While-Revalidate
+  // 2. Statistics manifest: network-first so a newly published generation
+  // is visible immediately while the last manifest remains available offline.
+  if (url.pathname === '/data/stats/manifest.json') {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            caches.open(DATA_CACHE).then((cache) => cache.put(request, networkResponse.clone()));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // 3. Data artifacts (/data/): Stale-While-Revalidate
   // Serves instant cached copy, fetches fresh update in background
   if (url.pathname.startsWith('/data/')) {
     event.respondWith(
@@ -112,7 +128,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Navigation requests: Network-first falling back to cached SPA root
+  // 4. Navigation requests: Network-first falling back to cached SPA root
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => {
@@ -122,7 +138,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Static assets (/assets/, /icons/, scripts, styles, fonts): Cache-first
+  // 5. Static assets (/assets/, /icons/, scripts, styles, fonts): Cache-first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) {

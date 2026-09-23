@@ -371,8 +371,8 @@ export interface ShortageCalculationResult {
 }
 
 export type StatsServer = 'eu' | 'com' | 'asia';
-export type StatsTimespan = '1' | '3' | '12' | 'all';
-export type SkillBracket = 'all' | 'low' | 'medium' | 'high' | 'top1';
+export type StatsTimespan = '1' | '3' | 'all';
+export type SkillBracket = 'all' | 'low' | 'medium' | 'high';
 
 export interface ShipStatMetrics {
   battles: number;
@@ -415,6 +415,12 @@ export interface StatsChunkData {
   server: StatsServer | string;
   span: StatsTimespan | string;
   updatedAt: string;
+  source?: 'shiptool' | string;
+  sourceVersion?: string | null;
+  sourcePlayers?: number;
+  sourceGames?: number;
+  sourceAsset?: string;
+  skippedShips?: number;
   totalShips: number;
   stats: ShipServerStats[];
 }

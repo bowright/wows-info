@@ -45,10 +45,18 @@ async function runVerification() {
   console.log('Suite 1: Server Stats Chunks & File Integrity');
 
   const statsFiles = fs.readdirSync(STATS_DIR);
-  assert(statsFiles.length === 12, `public/data/stats/ contains exactly 12 chunks (found ${statsFiles.length})`);
+  const supportedChunkFiles = statsFiles.filter((file) => /^stats-(eu|com|asia)-(1|3|all)\.json$/.test(file));
+  assert(supportedChunkFiles.length === 9, `public/data/stats/ contains 9 ShipTool chunks (found ${supportedChunkFiles.length})`);
+  const manifestPath = path.join(STATS_DIR, 'manifest.json');
+  assert(fs.existsSync(manifestPath), 'public/data/stats/manifest.json exists');
+  if (fs.existsSync(manifestPath)) {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    assert(manifest.source === 'shiptool', 'Statistics manifest identifies ShipTool as the source');
+    assert(manifest.totalChunks === 9, 'Statistics manifest reports 9 public chunks');
+  }
 
   const servers = ['eu', 'com', 'asia'];
-  const spans = ['1', '3', '12', 'all'];
+  const spans = ['1', '3', 'all'];
 
   for (const srv of servers) {
     for (const span of spans) {
@@ -60,8 +68,9 @@ async function runVerification() {
       assert(data.server === srv, `${filename} has server === '${srv}'`);
       assert(data.span === span, `${filename} has span === '${span}'`);
       assert(typeof data.updatedAt === 'string', `${filename} has ISO updatedAt`);
-      assert(data.totalShips === 993, `${filename} reports totalShips === 993`);
-      assert(Array.isArray(data.stats) && data.stats.length === 993, `${filename} contains 993 ship records`);
+      assert(data.source === 'shiptool', `${filename} identifies ShipTool as its source`);
+      assert(data.totalShips > 0 && data.totalShips <= 993, `${filename} reports catalog-matched ship records (${data.totalShips})`);
+      assert(Array.isArray(data.stats) && data.stats.length === data.totalShips, `${filename} contains its reported ship records`);
 
       // Check random sample records
       const sample = data.stats[0];
@@ -80,8 +89,8 @@ async function runVerification() {
       assert(typeof sample.pr === 'number' && sample.pr >= 0, `${filename} ship[0] has PR score (${sample.pr})`);
       assert(typeof sample.brackets === 'object', `${filename} ship[0] has brackets dictionary`);
       assert(
-        ['all', 'low', 'medium', 'high', 'top1'].every((k) => sample.brackets[k] != null),
-        `${filename} ship[0] contains all 5 skill brackets (all, low, medium, high, top1)`
+        ['all', 'low', 'medium', 'high'].every((k) => sample.brackets[k] != null),
+        `${filename} ship[0] contains all public skill brackets (all, low, medium, high)`
       );
     }
   }
@@ -95,66 +104,66 @@ async function runVerification() {
   const eu1Data = JSON.parse(fs.readFileSync(testChunkPath, 'utf8'));
 
   // Test 10 ships across tiers & classes for mathematical exactness
-  const testIndices = [0, 50, 100, 200, 300, 450, 600, 750, 880, 990];
+  const testIndices = [0, 50, 100, 200, 300, 450, 600, 750, 880, eu1Data.stats.length - 1]
+    .filter((index, position, indexes) => index >= 0 && indexes.indexOf(index) === position);
   for (const idx of testIndices) {
     const s = eu1Data.stats[idx];
     const bAll = s.brackets.all;
     const bLow = s.brackets.low;
     const bMed = s.brackets.medium;
     const bHigh = s.brackets.high;
-    const bTop = s.brackets.top1;
 
-    // 1. Battles conservation: all = low + med + high + top1
-    const subSumBattles = bLow.battles + bMed.battles + bHigh.battles + bTop.battles;
+    // 1. Battles conservation: all = low + med + high
+    const subSumBattles = bLow.battles + bMed.battles + bHigh.battles;
     assert(
       bAll.battles === subSumBattles,
-      `Ship '${s.dispName}' battles conservation: all (${bAll.battles}) == sum of brackets (${subSumBattles})`
+      `Ship '${s.dispName}' battles conservation: all (${bAll.battles}) == sum of public brackets (${subSumBattles})`
     );
 
-    // 2. Wins conservation: all = low + med + high + top1
-    const subSumWins = bLow.wins + bMed.wins + bHigh.wins + bTop.wins;
+    // 2. Wins conservation: all = low + med + high
+    const subSumWins = bLow.wins + bMed.wins + bHigh.wins;
     assert(
       bAll.wins === subSumWins,
       `Ship '${s.dispName}' wins conservation: all (${bAll.wins}) == sum of brackets (${subSumWins})`
     );
 
-    // 3. Damage conservation: all = low + med + high + top1
-    const subSumDamage = bLow.damage + bMed.damage + bHigh.damage + bTop.damage;
+    // 3. Damage conservation: all = low + med + high
+    const subSumDamage = bLow.damage + bMed.damage + bHigh.damage;
     assert(
       bAll.damage === subSumDamage,
       `Ship '${s.dispName}' damage conservation: all (${bAll.damage}) == sum of brackets (${subSumDamage})`
     );
 
-    // 4. Frags conservation: all = low + med + high + top1
-    const subSumFrags = bLow.frags + bMed.frags + bHigh.frags + bTop.frags;
+    // 4. Frags conservation: all = low + med + high
+    const subSumFrags = bLow.frags + bMed.frags + bHigh.frags;
     assert(
       bAll.frags === subSumFrags,
       `Ship '${s.dispName}' frags conservation: all (${bAll.frags}) == sum of brackets (${subSumFrags})`
     );
 
-    // 5. Survived conservation: all = low + med + high + top1
-    const subSumSurv = bLow.survived + bMed.survived + bHigh.survived + bTop.survived;
+    // 5. Survived conservation: all = low + med + high
+    const subSumSurv = bLow.survived + bMed.survived + bHigh.survived;
     assert(
       bAll.survived === subSumSurv,
       `Ship '${s.dispName}' survived conservation: all (${bAll.survived}) == sum of brackets (${subSumSurv})`
     );
 
-    // 6. XP conservation: all = low + med + high + top1
-    const subSumXp = bLow.xp + bMed.xp + bHigh.xp + bTop.xp;
+    // 6. XP conservation: all = low + med + high
+    const subSumXp = bLow.xp + bMed.xp + bHigh.xp;
     assert(
       bAll.xp === subSumXp,
       `Ship '${s.dispName}' XP conservation: all (${bAll.xp}) == sum of brackets (${subSumXp})`
     );
 
     // 7. Spotting conservation
-    const subSumSpot = bLow.spotting + bMed.spotting + bHigh.spotting + bTop.spotting;
+    const subSumSpot = bLow.spotting + bMed.spotting + bHigh.spotting;
     assert(
       bAll.spotting === subSumSpot,
       `Ship '${s.dispName}' spotting conservation: all (${bAll.spotting}) == sum of brackets (${subSumSpot})`
     );
 
     // 8. Potential conservation
-    const subSumPot = bLow.potential + bMed.potential + bHigh.potential + bTop.potential;
+    const subSumPot = bLow.potential + bMed.potential + bHigh.potential;
     assert(
       bAll.potential === subSumPot,
       `Ship '${s.dispName}' potential conservation: all (${bAll.potential}) == sum of brackets (${subSumPot})`
