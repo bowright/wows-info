@@ -119,6 +119,8 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     searchQuery,
     isLoading,
     error,
+    currentStats,
+    lastLoadedKey,
     setServer,
     setSpan,
     setBracket,
@@ -161,6 +163,8 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     return getFilteredStats();
   }, [
     getFilteredStats,
+    currentStats,
+    lastLoadedKey,
     selectedServer,
     selectedSpan,
     selectedBracket,
@@ -1023,7 +1027,9 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
         <div className="flex items-center gap-3">
           <span>
             Displaying <strong className="text-white">{rows.length}</strong> ships on{' '}
-            <strong className="text-amber-400 uppercase">{selectedServer}</strong> server
+            <strong className="text-amber-400 uppercase">
+              {SERVER_OPTIONS.find((s) => s.id === selectedServer)?.label || selectedServer}
+            </strong> server
           </span>
           <span className="text-slate-700">|</span>
           <span className="text-[11px] text-slate-500">

@@ -74,7 +74,7 @@ export interface StatsStoreState extends StatsFilters {
  */
 export function normalizeServer(server: string): StatsServer {
   const s = server.toLowerCase();
-  if (s === 'na' || s === 'us' || s === 'north_america') return 'com';
+  if (s === 'na' || s === 'com' || s === 'us' || s === 'north_america') return 'com';
   if (s === 'asia' || s === 'apac') return 'asia';
   return 'eu';
 }

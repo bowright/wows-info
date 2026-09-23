@@ -248,6 +248,15 @@ export async function buildData(options = {}) {
     fs.unlinkSync(path.join(STATS_DIR, f));
   }
 
+  function pseudoHash(id, key) {
+    let h = (id ^ 0x5bf03635) >>> 0;
+    for (let i = 0; i < key.length; i++) {
+      h = (Math.imul(h ^ key.charCodeAt(i), 0x5bd1e995)) >>> 0;
+      h ^= h >>> 15;
+    }
+    return (h % 100000) / 100000;
+  }
+
   for (const srv of servers) {
     for (const span of spans) {
       const statsList = [];
@@ -256,43 +265,125 @@ export async function buildData(options = {}) {
 
       for (const ship of catalog) {
         const tierFactor = ship.tier / 10;
-        const baseWR = Math.min(54, Math.max(46, 49.5 + ((ship.id % 50) - 25) * 0.12));
+        const hp = ship.health || (ship.tier * 5000 + 10000);
+        const conceal = ship.concealmentSurface || (ship.class === 'Destroyer' ? 6.8 : ship.class === 'Cruiser' ? 13.0 : ship.class === 'Battleship' ? 16.5 : 12.0);
+        const speed = ship.speed || (ship.class === 'Destroyer' ? 36 : ship.class === 'Cruiser' ? 33 : ship.class === 'Battleship' ? 28 : 30);
+        const aaDps = ship.aaDps || (ship.aa?.totalDps || 0);
+        const flakCount = ship.flakCount || (ship.aa?.flakCount || 0);
+        const category = ship.acquisition?.category || 'Tech Tree';
+
+        // 1. Battles calculation (popularity + tier scaling)
+        const isPopular = [
+          'Napoli', 'Moskva', 'Des Moines', 'Yamato', 'Bismarck', 'Iowa', 'Shimakaze',
+          'Kremlin', 'Ohio', 'Montana', 'Schlieffen', 'Petropavlovsk', 'Minotaur', 'Yoshino'
+        ].includes(ship.dispName);
+        const popMultiplier = isPopular ? 2.2 : 1.0;
+        const shipBattleSeed = 0.7 + pseudoHash(ship.id, 'battles') * 0.6;
         const totalBattles = Math.round(
-          (12000 + (ship.id % 25000) * (ship.tier >= 8 ? 2.2 : 0.9)) * spanMultiplier * srvMultiplier
+          (12000 + (ship.tier >= 8 ? 20000 : ship.tier >= 5 ? 8000 : 3000)) *
+          spanMultiplier *
+          srvMultiplier *
+          popMultiplier *
+          shipBattleSeed
         );
 
-        const baseAvgDmg = Math.round(
-          ship.class === 'Battleship' ? 55000 + tierFactor * 45000 :
-          ship.class === 'Cruiser' ? 35000 + tierFactor * 35000 :
-          ship.class === 'Destroyer' ? 25000 + tierFactor * 30000 :
-          ship.class === 'AirCarrier' ? 50000 + tierFactor * 50000 : 30000 + tierFactor * 25000
-        );
-        const baseAvgFrags = Math.round((0.68 + (ship.id % 35) * 0.01) * 100) / 100;
-        const baseSurv = Math.round(
-          ship.class === 'Battleship' ? 40 + (ship.id % 10) :
-          ship.class === 'Cruiser' ? 35 + (ship.id % 8) :
-          ship.class === 'Destroyer' ? 31 + (ship.id % 8) :
-          ship.class === 'AirCarrier' ? 68 + (ship.id % 8) : 34 + (ship.id % 8)
-        );
-        const baseAvgXp = Math.round(900 + tierFactor * 850 + (ship.id % 80));
-        const baseSpot = Math.round(
-          ship.class === 'Destroyer' ? 36000 + tierFactor * 16000 :
-          ship.class === 'AirCarrier' ? 42000 + tierFactor * 22000 :
-          ship.class === 'Cruiser' ? 22000 + tierFactor * 14000 :
-          ship.class === 'Battleship' ? 12000 + tierFactor * 8000 : 16000 + tierFactor * 10000
-        );
-        const basePot = Math.round(
-          ship.class === 'Battleship' ? 1400000 + tierFactor * 900000 :
-          ship.class === 'Cruiser' ? 800000 + tierFactor * 500000 :
-          ship.class === 'Destroyer' ? 600000 + tierFactor * 350000 :
-          ship.class === 'AirCarrier' ? 450000 + tierFactor * 250000 : 400000 + tierFactor * 200000
-        );
-        const basePlanes = Math.round(
-          (ship.class === 'AirCarrier' ? 12 + tierFactor * 10 :
-           ship.class === 'Cruiser' ? 3.0 + tierFactor * 4 :
-           ship.class === 'Battleship' ? 2.5 + tierFactor * 4 :
-           ship.class === 'Destroyer' ? 0.8 + tierFactor * 2 : 0.1) * 10
-        ) / 10;
+        // 2. Base Win Rate (reflects category, class, individual balance, server meta & timespan)
+        let catWRBoost = 0;
+        if (category === 'Steel' || category === 'Research Bureau') catWRBoost = 2.4;
+        else if (category === 'Coal' || category === 'Dockyard') catWRBoost = 1.8;
+        else if (category === 'Removed') catWRBoost = 1.5;
+        else if (ship.isPremium || ship.isSpecial) catWRBoost = 1.0;
+
+        const shipWRSeed = (pseudoHash(ship.id, 'wr-base') - 0.5) * 3.4;
+        const baseShipWR = 49.6 + catWRBoost + shipWRSeed;
+
+        // Server meta delta
+        const srvWRDelta = (pseudoHash(ship.id, `wr-srv-${srv}`) - 0.5) * (srv === 'com' ? 2.4 : srv === 'asia' ? 2.6 : 1.8);
+
+        // Timespan update delta
+        const spanWRDelta = span === '1' ? (pseudoHash(ship.id, `wr-span-1-${srv}`) - 0.5) * 2.8 :
+                            span === '3' ? (pseudoHash(ship.id, `wr-span-3-${srv}`) - 0.5) * 1.5 :
+                            span === '12' ? (pseudoHash(ship.id, `wr-span-12-${srv}`) - 0.5) * 0.7 : 0;
+
+        const baseWR = Math.min(58.0, Math.max(45.0, Math.round((baseShipWR + srvWRDelta + spanWRDelta) * 100) / 100));
+
+        // 3. Spotting Damage (class role + surface concealment + speed + uniqueness seed + srv/span)
+        let classBaseSpot;
+        if (ship.class === 'Destroyer') {
+          const concealBonus = Math.max(0, (9.0 - conceal) * 3500);
+          const speedBonus = (speed - 30) * 400;
+          classBaseSpot = 18000 + tierFactor * 22000 + concealBonus + speedBonus;
+        } else if (ship.class === 'AirCarrier') {
+          classBaseSpot = 25000 + tierFactor * 32000;
+        } else if (ship.class === 'Cruiser') {
+          const concealBonus = Math.max(0, (16.0 - conceal) * 1200);
+          const speedBonus = (speed - 30) * 300;
+          classBaseSpot = 14000 + tierFactor * 16000 + concealBonus + speedBonus;
+        } else if (ship.class === 'Battleship') {
+          const speedBonus = (speed - 20) * 200;
+          classBaseSpot = 8000 + tierFactor * 10000 + speedBonus;
+        } else {
+          classBaseSpot = 15000 + tierFactor * 18000 + Math.max(0, (7.5 - conceal) * 2500);
+        }
+        const spotSeed = (pseudoHash(ship.id, 'spot-seed') - 0.5) * 0.16;
+        const spotSrvFactor = srv === 'asia' ? 1.04 : srv === 'com' ? 0.98 : 1.0;
+        const spotSpanFactor = 1.0 + (pseudoHash(ship.id, `span-spot-${span}-${srv}`) - 0.5) * 0.05;
+        const baseSpot = Math.round(classBaseSpot * (1 + spotSeed) * spotSrvFactor * spotSpanFactor);
+
+        // 4. Potential Damage (HP pool scaling + concealment drawing fire + speed agility + seed + srv/span)
+        let hpMultiplier;
+        if (ship.class === 'Battleship') {
+          hpMultiplier = 20.0 + tierFactor * 3.5 + Math.max(0, conceal - 14) * 0.5;
+        } else if (ship.class === 'Cruiser') {
+          hpMultiplier = 17.0 + tierFactor * 4.0 + (conceal > 13 ? (conceal - 13) * 0.8 : -(13 - conceal) * 0.4);
+        } else if (ship.class === 'Destroyer') {
+          hpMultiplier = 22.0 + tierFactor * 5.0 + (speed > 38 ? 3.0 : 0) + (conceal > 6.5 ? 2.0 : -1.0);
+        } else if (ship.class === 'AirCarrier') {
+          hpMultiplier = 6.5 + tierFactor * 2.0;
+        } else {
+          hpMultiplier = 11.0 + tierFactor * 3.0;
+        }
+        const potSeed = (pseudoHash(ship.id, 'pot-seed') - 0.5) * 0.12;
+        const potSrvFactor = srv === 'com' ? 1.04 : srv === 'asia' ? 0.96 : 1.0;
+        const potSpanFactor = 1.0 + (pseudoHash(ship.id, `span-pot-${span}-${srv}`) - 0.5) * 0.04;
+        const basePot = Math.round(hp * hpMultiplier * (1 + potSeed) * potSrvFactor * potSpanFactor);
+
+        // 5. Average Damage (class baseline + weapon DPM/torps + seed + srv/span)
+        const classBaseDmg =
+          ship.class === 'Battleship' ? 48000 + tierFactor * 42000 :
+          ship.class === 'Cruiser' ? 28000 + tierFactor * 38000 :
+          ship.class === 'Destroyer' ? 18000 + tierFactor * 26000 :
+          ship.class === 'AirCarrier' ? 40000 + tierFactor * 48000 : 24000 + tierFactor * 26000;
+
+        const maxDpm = Math.max(ship.artillery?.heDpm || 0, ship.artillery?.apDpm || 0, ship.artillery?.sapDpm || 0);
+        const dpmBonus = maxDpm > 0 ? (maxDpm / 350000) * 10000 * tierFactor : 0;
+        const torpAlpha = (ship.torpedoes?.damage || 0) * (ship.torpedoes?.totalTubes || 0);
+        const torpBonus = torpAlpha > 0 ? Math.min(12000, (torpAlpha / 120000) * 8000 * tierFactor) : 0;
+
+        const dmgSeed = (pseudoHash(ship.id, 'dmg-seed') - 0.5) * 0.12;
+        const dmgSrvFactor = srv === 'asia' ? 1.02 : srv === 'com' ? 1.01 : 1.0;
+        const dmgSpanFactor = 1.0 + (pseudoHash(ship.id, `span-dmg-${span}-${srv}`) - 0.5) * 0.04;
+        const baseAvgDmg = Math.round((classBaseDmg + dpmBonus + torpBonus) * (1 + dmgSeed) * dmgSrvFactor * dmgSpanFactor);
+
+        // 6. Frag Rate, Survival, Planes, XP
+        const fragsSeed = (pseudoHash(ship.id, 'frags-seed') - 0.5) * 0.14;
+        const baseAvgFrags = Math.round(Math.min(1.4, Math.max(0.4, 0.72 + (baseAvgDmg / 150000) * 0.35 + (baseWR - 50) * 0.02 + fragsSeed)) * 100) / 100;
+
+        const survBase =
+          ship.class === 'Battleship' ? 42 :
+          ship.class === 'Cruiser' ? 36 :
+          ship.class === 'Destroyer' ? 32 :
+          ship.class === 'AirCarrier' ? 70 : 35;
+        const survSeed = (pseudoHash(ship.id, 'surv-seed') - 0.5) * 8;
+        const baseSurv = Math.min(85, Math.max(18, Math.round(survBase + (baseWR - 50) * 0.8 + survSeed)));
+
+        const aaRating = (aaDps / 60) + flakCount * 0.6;
+        const planesBase = ship.class === 'AirCarrier' ? 14 + tierFactor * 8 : Math.max(0.2, aaRating * tierFactor * 0.8);
+        const planesSeed = (pseudoHash(ship.id, 'planes-seed') - 0.5) * 0.4;
+        const basePlanes = Math.round(Math.max(0.1, planesBase * (1 + planesSeed)) * 10) / 10;
+
+        const xpSeed = (pseudoHash(ship.id, 'xp-seed') - 0.5) * 100;
+        const baseAvgXp = Math.round(900 + tierFactor * 800 + (baseWR - 50) * 25 + (baseAvgDmg / 220) + xpSeed);
 
         const expected = {
           expectedDamage: Math.round(baseAvgDmg * 0.95),
@@ -300,12 +391,12 @@ export async function buildData(options = {}) {
           expectedFrags: 0.8,
         };
 
-        // Skill brackets definition
+        // Skill brackets definition (weights sum to 1.0, wrDelta weighted average = 0.0)
         const bracketConfig = [
-          { key: 'low', weight: 0.20, wrDelta: -6.0, dmgMul: 0.74, fragsMul: 0.65, survMul: 0.72, xpMul: 0.78, spotMul: 0.80, potMul: 0.85, planesMul: 0.78 },
-          { key: 'medium', weight: 0.50, wrDelta: -0.2, dmgMul: 0.96, fragsMul: 0.94, survMul: 0.97, xpMul: 0.98, spotMul: 0.97, potMul: 0.98, planesMul: 0.97 },
-          { key: 'high', weight: 0.25, wrDelta: 5.5, dmgMul: 1.25, fragsMul: 1.30, survMul: 1.28, xpMul: 1.24, spotMul: 1.20, potMul: 1.18, planesMul: 1.20 },
-          { key: 'top1', weight: 0.05, wrDelta: 13.5, dmgMul: 1.62, fragsMul: 1.80, survMul: 1.58, xpMul: 1.55, spotMul: 1.42, potMul: 1.35, planesMul: 1.45 },
+          { key: 'low', weight: 0.20, wrDelta: -7.0, dmgMul: 0.74, fragsMul: 0.65, survMul: 0.72, xpMul: 0.78, spotMul: 0.80, potMul: 0.85, planesMul: 0.78 },
+          { key: 'medium', weight: 0.50, wrDelta: -1.0, dmgMul: 0.96, fragsMul: 0.94, survMul: 0.97, xpMul: 0.98, spotMul: 0.97, potMul: 0.98, planesMul: 0.97 },
+          { key: 'high', weight: 0.25, wrDelta: 5.0, dmgMul: 1.25, fragsMul: 1.30, survMul: 1.28, xpMul: 1.24, spotMul: 1.20, potMul: 1.18, planesMul: 1.20 },
+          { key: 'top1', weight: 0.05, wrDelta: 13.0, dmgMul: 1.62, fragsMul: 1.80, survMul: 1.58, xpMul: 1.55, spotMul: 1.42, potMul: 1.35, planesMul: 1.45 },
         ];
 
         let sumBattles = 0;

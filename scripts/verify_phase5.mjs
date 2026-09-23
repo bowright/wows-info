@@ -389,9 +389,40 @@ async function runVerification() {
 
   // Verify normalizeServer
   assert(normalizeServer('na') === 'com', `normalizeServer('na') maps to 'com'`);
+  assert(normalizeServer('com') === 'com', `normalizeServer('com') maps to 'com'`);
   assert(normalizeServer('US') === 'com', `normalizeServer('US') maps to 'com'`);
   assert(normalizeServer('eu') === 'eu', `normalizeServer('eu') maps to 'eu'`);
   assert(normalizeServer('asia') === 'asia', `normalizeServer('asia') maps to 'asia'`);
+
+  // Verify server-to-server and timespan dynamic variance
+  const eu1Chunk = JSON.parse(fs.readFileSync(path.join(STATS_DIR, 'stats-eu-1.json'), 'utf8'));
+  const com1Chunk = JSON.parse(fs.readFileSync(path.join(STATS_DIR, 'stats-com-1.json'), 'utf8'));
+  const asia1Chunk = JSON.parse(fs.readFileSync(path.join(STATS_DIR, 'stats-asia-1.json'), 'utf8'));
+  const eu3Chunk = JSON.parse(fs.readFileSync(path.join(STATS_DIR, 'stats-eu-3.json'), 'utf8'));
+
+  const napoliEu1 = eu1Chunk.stats.find((s) => s.dispName === 'Napoli');
+  const napoliCom1 = com1Chunk.stats.find((s) => s.dispName === 'Napoli');
+  const napoliAsia1 = asia1Chunk.stats.find((s) => s.dispName === 'Napoli');
+  const napoliEu3 = eu3Chunk.stats.find((s) => s.dispName === 'Napoli');
+  const moskvaEu1 = eu1Chunk.stats.find((s) => s.dispName === 'Moskva');
+
+  assert(Boolean(napoliEu1 && napoliCom1 && napoliAsia1 && moskvaEu1), 'Napoli and Moskva records found in chunks');
+  assert(
+    napoliEu1.winRate !== napoliCom1.winRate || napoliEu1.winRate !== napoliAsia1.winRate,
+    `Win rate varies across server regions (EU: ${napoliEu1.winRate}%, NA: ${napoliCom1.winRate}%, ASIA: ${napoliAsia1.winRate}%)`
+  );
+  assert(
+    napoliEu1.winRate !== napoliEu3.winRate,
+    `Win rate varies across timespans (EU 1-Update: ${napoliEu1.winRate}% vs EU 3-Updates: ${napoliEu3.winRate}%)`
+  );
+  assert(
+    napoliEu1.spottingDamage !== moskvaEu1.spottingDamage,
+    `Spotting damage is ship-distinct (Napoli: ${napoliEu1.spottingDamage} vs Moskva: ${moskvaEu1.spottingDamage})`
+  );
+  assert(
+    napoliEu1.potentialDamage !== moskvaEu1.potentialDamage,
+    `Potential damage is ship-distinct (Napoli: ${napoliEu1.potentialDamage} vs Moskva: ${moskvaEu1.potentialDamage})`
+  );
 
   // Verify prCalculator.ts
   const prCalcPath = path.join(SRC_DIR, 'utils/prCalculator.ts');
