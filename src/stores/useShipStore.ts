@@ -382,10 +382,31 @@ export const useShipStore = create<ShipStoreState>((set, get) => ({
       (activeBuild.skills?.hpLostPercent != null && activeBuild.skills.hpLostPercent > 0);
 
     return filtered.map((ship) => {
-      // If useTopModules is false, adjust base health to stockHealth
       let baseShip = ship;
-      if (!useTopModules && ship.stockHealth && ship.stockHealth !== ship.health) {
-        baseShip = { ...ship, health: ship.stockHealth };
+      if (!useTopModules) {
+        const stockArtillery = ship.artillery?.stock ?? ship.artillery;
+        const stockTorpedoes = ship.torpedoes?.stock ?? ship.torpedoes;
+
+        baseShip = {
+          ...ship,
+          health: ship.stockHealth,
+          speed: ship.stockSpeed,
+          rudderTime: ship.stockRudderTime,
+          turningRadius: ship.stockTurningRadius,
+          concealmentSurface: ship.stockConcealmentSurface,
+          concealmentAir: ship.stockConcealmentAir,
+          concealmentSmoke: ship.stockConcealmentSmoke,
+          smokePenalty: ship.stockConcealmentSmoke,
+          artillery: stockArtillery,
+          torpedoes: stockTorpedoes,
+          traverse180: stockArtillery?.traverse180 ?? null,
+          horizontalDispersion: stockArtillery?.horizontalDispersion ?? null,
+          verticalDispersion: stockArtillery?.verticalDispersion ?? null,
+          heAlpha: stockArtillery?.heAlpha ?? null,
+          apAlpha: stockArtillery?.apAlpha ?? null,
+          sapAlpha: stockArtillery?.sapAlpha ?? null,
+          torpedoDetect: stockTorpedoes?.detectabilityKm ?? null,
+        };
       }
 
       if (!hasActiveModifiers) {

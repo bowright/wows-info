@@ -116,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({ currentPath, onNavigate }) => {
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block">
-                {ships.length > 0 ? `${ships.length} Ships | 228 Armory Deals` : 'Local Ship Matrix'}
+                {ships.length > 0 ? `${ships.length} Ships | 226 Armory Deals` : 'Local Ship Matrix'}
               </p>
             </div>
           </div>

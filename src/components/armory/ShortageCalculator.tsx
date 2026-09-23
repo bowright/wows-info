@@ -82,7 +82,9 @@ export const ShortageCalculator: React.FC<ShortageCalculatorProps> = ({
       const pureCoalRemaining = canAffordPureCoal ? userCoal - effectiveCoalPrice : 0;
       const pureCoalShortage = canAffordPureCoal ? 0 : effectiveCoalPrice - userCoal;
       const daysToGoalPureCoal =
-        pureCoalShortage > 0 ? Math.ceil(pureCoalShortage / dailyCoalRate) : 0;
+        dailyCoalRate > 0 && pureCoalShortage > 0
+          ? Math.ceil(pureCoalShortage / dailyCoalRate)
+          : 0;
 
       // 2. Steel substitution (1:10)
       const steelNeededToCover = pureCoalShortage > 0 ? Math.ceil(pureCoalShortage / 10) : 0;
@@ -99,7 +101,7 @@ export const ShortageCalculator: React.FC<ShortageCalculatorProps> = ({
       );
       const effectiveSteelShortage = Math.ceil(remainingCoalShortageWithSteel / 10);
       const daysToGoalWithSteel =
-        remainingCoalShortageWithSteel > 0
+        dailyCoalRate > 0 && remainingCoalShortageWithSteel > 0
           ? Math.ceil(remainingCoalShortageWithSteel / dailyCoalRate)
           : 0;
 

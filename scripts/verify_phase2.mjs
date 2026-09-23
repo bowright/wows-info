@@ -120,8 +120,22 @@ async function runVerification() {
   assert(shimaDetail.asw?.type === 'depth_charges', 'Shimakaze ASW type is depth_charges');
   assert(shimaDetail.asw?.reloadTime === 40, `Shimakaze depth charge reload time is 40s (found ${shimaDetail.asw?.reloadTime}s)`);
 
-  // --- Suite 4: Promoted Key Scalar Columns in catalog.json ---
-  console.log('\nSuite 4: Promoted Key Scalar Columns in catalog.json');
+  // --- Suite 4: Secondary Battery, Carrier & Submarine Extraction ---
+  console.log('\nSuite 4: Secondary Battery, Carrier & Submarine Extraction');
+  const ohio = catalog.find((s) => s.name === 'PASB510_Ohio');
+  const napoli = catalog.find((s) => s.name === 'PISC510_Napoli');
+  const midway = catalog.find((s) => s.name === 'PASA110_Midway');
+  const balao = catalog.find((s) => s.name === 'PASS210_Balao');
+  assert(ohio?.secondary?.rangeKm === 7.5, `Ohio secondary range is 7.5 km (found ${ohio?.secondary?.rangeKm})`);
+  assert((ohio?.secondary?.heDpm || 0) > 0, `Ohio secondary HE DPM is populated (found ${ohio?.secondary?.heDpm})`);
+  assert((napoli?.secondary?.sapDpm || 0) > 0, `Napoli secondary SAP DPM is populated (found ${napoli?.secondary?.sapDpm})`);
+  assert((midway?.aircraft?.torpedoBombers?.planes?.[0]?.maxHealth || 0) > 0, 'Midway torpedo bomber stats are populated');
+  assert(midway?.smokePenalty === null, 'Midway smoke penalty is null when the hull has no smoke-firing penalty');
+  assert(balao?.submarine?.diveCapacity === 240, `Balao dive capacity is 240 (found ${balao?.submarine?.diveCapacity})`);
+  assert(balao?.submarine?.pingReloadTime === 7, `Balao top sonar ping reload is 7s (found ${balao?.submarine?.pingReloadTime}s)`);
+
+  // --- Suite 5: Promoted Key Scalar Columns in catalog.json ---
+  console.log('\nSuite 5: Promoted Key Scalar Columns in catalog.json');
   assert(iowa.traverse180 === 45, `Iowa traverse180 promoted to catalog.json (found ${iowa.traverse180}s)`);
   assert(iowa.horizontalDispersion === 294, `Iowa horizontalDispersion promoted (found ${iowa.horizontalDispersion}m)`);
   assert(iowa.verticalDispersion === 176, `Iowa verticalDispersion promoted (found ${iowa.verticalDispersion}m)`);
@@ -149,8 +163,8 @@ async function runVerification() {
   assert(hasAaDps >= 900, `At least 900 ships have aaDps (found ${hasAaDps})`);
   assert(hasAswRange >= 500, `At least 500 ships have aswRange (found ${hasAswRange})`);
 
-  // --- Suite 5: Dynamic Build Modifier Engine ---
-  console.log('\nSuite 5: Dynamic Build Modifier Engine');
+  // --- Suite 6: Dynamic Build Modifier Engine ---
+  console.log('\nSuite 6: Dynamic Build Modifier Engine');
 
   // Test 1: CE + CSM1 on Iowa reduces 15.7 km detectability to 12.72 km (exact compound 0.81 multiplier)
   const iowaConcealmentTest = { ...iowa, concealmentSurface: 15.7 };

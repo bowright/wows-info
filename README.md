@@ -59,7 +59,7 @@ A high-performance local web application delivering feature parity with [shiptoo
 │   ├── sw.js                       # Service worker with offline caching
 │   └── data/
 │       ├── catalog.json            # Flat columnar table index (993 ships, ~136 KB gz)
-│       ├── armory_master.json      # Acquisition & coupon database (228 offers)
+│       ├── armory_master.json      # Acquisition & coupon database (226 offers)
 │       ├── details/                # 993 code-split ship module & ballistics files
 │       ├── locales/en.json         # Filtered English strings (~120 KB gz)
 │       └── stats/                  # ShipTool chunks: EU/NA/Asia × 1/3/all + manifest
@@ -125,12 +125,13 @@ npm run sync
 npm test
 
 # Run individual verification suites
-npm run test:phase1     # Data ingestion & Top module resolution (51 tests)
-npm run test:phase2     # Ballistics, consumables & column promotions (68 tests)
-npm run test:phase3     # Virtualized parameter matrix & acquisition filters (68 tests)
-npm run test:phase4     # Armory offers, shortage calculator & archives (379 tests)
-npm run test:phase5     # Server statistics chunks, PR calculator & brackets (489 tests)
-npm run test:phase6     # PWA manifest, service worker & compare matrix (83 tests)
+npm run test:phase1     # Data ingestion & Top module resolution (58 tests)
+npm run test:phase2     # Ballistics, consumables & column promotions (75 tests)
+npm run test:phase3     # Virtualized parameter matrix & acquisition filters (69 tests)
+npm run test:phase4     # Armory offers, shortage calculator & archives (380 tests)
+npm run test:phase5     # ShipTool server statistics chunks, PR calculator & brackets (444 tests)
+npm run test:shiptool-stats # ShipTool importer, provenance manifest & cache validation (63 tests)
+npm run test:phase6     # PWA manifest, service worker & compare matrix (86 tests)
 npm run test:filters    # All/None filter controls & full tier coverage (132 tests)
 npm run test:shiptool   # Shiptool column names & survivability matrix (92 tests)
 
@@ -141,48 +142,52 @@ npm run dev
 npm run build
 ```
 
+Server-statistics synchronization is server-side and uses ShipTool’s public aggregate bundles for EU, NA, and Asia. The importer writes `public/data/stats/manifest.json`, keeps the previous validated snapshot if the upstream is unavailable, and does not synthesize replacement statistics. Premium-only annual/full bundles and the unsupported Top 1% bracket are intentionally not exposed by `/stats`.
+
 ---
 
 ## 🧪 Comprehensive Verification Results
 
-The automated test suite (`npm test`) executes **1,362 total tests** across **44 validation suites** with **100% passing status**:
+The automated test suite (`npm test`) executes **1,399 total tests** with **100% passing status**:
 
-*   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 51/51 tests passing.
+*   **Phase 1 Verification (`scripts/verify_phase1.mjs`)**: 58/58 tests passing.
     *   **Catalog Completeness**: 993/993 ships ingested with valid typed fields and non-zero HP.
     *   **Top Module Resolution**: Iowa 79,000 HP (Hull B), 23.35 km range, 28mm overmatch. Fletcher top Mk 16 torpedoes. Mogami top 203mm artillery.
-    *   **Armory Strict Filtering**: Exactly 228 active offers across 224 bundles, 0 false-positive camos/commanders.
+    *   **Armory Strict Filtering**: Exactly 226 active offers across 222 bundles, excluding zero-price early-access mission steps and false-positive camos/commanders.
     *   **Historical Catalog**: Removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers*) marked `santa_supercontainer_only`. Dockyard ships marked `dockyard_historical`. Clones linked to parent ships.
     *   **Krupp Ballistics & Overmatch Precision**: Authentic WoWs penetration formulas and overmatch thresholds.
-*   **Phase 2 Verification (`scripts/verify_phase2.mjs`)**: 68/68 tests passing.
+*   **Phase 2 Verification (`scripts/verify_phase2.mjs`)**: 75/75 tests passing.
     *   **Consumables Ingestion**: `abilityMap` resolves all 993 ships; full slot trees with charges (`numConsumables`), cooldown (`reloadTime`), duration (`workTime`), localized names, and logic modifiers.
     *   **AA Defense & Flak**: Continuous DPS (near, mid, far), max AA range, flak burst count, and flak damage.
     *   **ASW Armament**: Airstrike stats across 570 ships and ship-mounted depth charges across destroyers.
     *   **Promoted Table Matrix Columns**: 12 key scalar metrics promoted directly to `catalog.json` for 60fps virtualized matrix rendering.
     *   **Dynamic Build Modifier Engine**: Compound multipliers verified for upgrades, commander skills, and signals.
-*   **Phase 3 Verification (`scripts/verify_phase3.mjs`)**: 68/68 tests passing.
-    *   **Acquisition Filtering**: Filter by Coal returns exactly 35 ships; Steel returns exactly 21 ships; Research Bureau returns 19 ships; Dockyard returns 14 ships; Removed returns 26 ships.
+*   **Phase 3 Verification (`scripts/verify_phase3.mjs`)**: 69/69 tests passing.
+    *   **Acquisition Filtering**: Filter by Coal returns exactly 35 ships; Steel returns exactly 21 ships; Research Bureau returns 19 ships; Dockyard returns 14 ships; Removed returns 30 ships.
     *   **Coupon Modeling**: -25% Armory coupon toggle accurately discounts Coal and Steel ships without affecting non-eligible currencies (Research Bureau RP stays unchanged).
-    *   **Clone & Replica Management**: Hide Clones toggle removes all 84 clone ships (993 $\rightarrow$ 909 ships), while filtering specifically by Clones returns all 84 replicas.
+    *   **Clone & Replica Management**: Hide Clones toggle removes all 110 clone ships (993 $\rightarrow$ 883 ships), while filtering specifically by Clones returns all 110 replicas.
     *   **Search Query Precision**: Substring and case-insensitive matching across ship name, localized name, and index.
     *   **Compound Filtering**: Multi-dimensional filtering across tier, nation, and class (e.g. Tier 10 US Battleships).
     *   **TanStack Table v8 + TanStack Virtual v3**: Virtualized table container rendering 993 rows with 6 sticky pinned columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`).
-    *   **Preset Column Views**: 7 preset views (`general`, `survivability`, `artillery`, `torpedoes`, `aa`, `asw`, `all`) with dynamic stat heatmaps.
+    *   **Preset Column Views**: 8 preset views (`general`, `survivability`, `artillery`, `secondary`, `torpedoes`, `aa`, `asw`, `all`) with dynamic stat heatmaps.
     *   **Live Recomputation**: Real-time updates from BuildModifierDrawer (slots 1-6, commander skills with dynamic HP slider, and signals).
-*   **Phase 4 Verification (`scripts/verify_phase4.mjs`)**: 379/379 tests passing.
-    *   **Armory Offers Breakdown**: 228 active offers verified across 5 categories (52 Coal, 21 Steel, 19 Research Bureau, 126 Doubloons, 10 Event Tokens). 100% matched to catalog ships with 0 orphans.
+*   **Phase 4 Verification (`scripts/verify_phase4.mjs`)**: 380/380 tests passing.
+    *   **Armory Offers Breakdown**: 226 active offers verified across 5 currency groups (52 Coal, 21 Steel, 19 Research Bureau, 124 Doubloons, 10 Event Tokens). 100% matched to catalog ships with 0 orphans.
     *   **Coupon Calculation Precision**: 100% of Coal, Steel, and Doubloon offers verified with exact `Math.round(price * 0.75)` discounts; Research Bureau (RP) and Event tokens verified strictly ineligible (0% discount, full price).
     *   **Shortage Calculator Math**: Verified pure Coal affordability, exact shortage calculation, 1:10 Steel substitution (`1 Steel = 10 Coal`), leftover resources, and time-to-goal estimation based on user daily collection rates.
     *   **Dockyard Archive Completeness**: Verified all 14 historical dockyard campaigns (*Wisconsin, Michelangelo, Lüshun, Daisen, Atlântico, Puerto Rico, Marlborough, De Zeven Provinciën, Hizen, Anchorage, Odin, Almirante Oquendo, Niord, Schill*) with total phases, free mission phases, and starter pack Doubloon requirements.
     *   **Removed Ships Hall of Fame**: Verified all 26 removed ships (*Musashi, Småland, Enterprise, Belfast, Georgia, Alaska, Thunderer, Somers, Missouri, Massachusetts, Nelson, Jean Bart, etc.*) with Santa Tier 1 drop ratings, historical removal versions, and original acquisition prices.
     *   **Frontend UI & Component Contract**: Full export and prop verification for `ArmoryCard.tsx`, `ShortageCalculator.tsx`, and `ArmoryView.tsx` with all 8 tab triggers.
-*   **Phase 5 Verification (`scripts/verify_phase5.mjs`)**: 489/489 tests passing.
-    *   **12 Dynamic Chunks**: Verified all 12 combinations load and parse valid 993 ship records (`stats-[server]-[span].json` across EU, NA/com, ASIA for spans 1, 3, 12, all).
-    *   **Skill Bracket & Mathematical Exactness**: Verified exact battles and raw metric accumulators conservation ($b_{\text{all}} = \sum b_i, \text{wins}_{\text{all}} = \sum \text{wins}_i, \text{dmg}_{\text{all}} = \sum \text{dmg}_i, \text{frags}_{\text{all}} = \sum \text{frags}_i$) across All, Low (<47.5%), Medium (47.5–52.5%), High (52.5–60%), and Top 1% Unicum (>60%).
+*   **Phase 5 Verification (`scripts/verify_phase5.mjs`)**: 444/444 tests passing, plus 63 ShipTool importer checks.
+    *   **9 ShipTool Chunks**: Verified EU, NA/com, and ASIA public bundles for spans 1, 3, and all-time. The importer preserves raw wins/battles, computes battle-weighted metrics, and records the upstream version in `stats/manifest.json`.
+    *   **Upstream Cache Safety**: ShipTool assets are fetched server-side, validated, and atomically replaced. If the upstream is unavailable, the last known-good snapshot remains available and is marked stale; synthetic statistics are not generated.
+    *   **Public Skill Brackets**: Exposes ShipTool’s public All, Low, Medium, and High groups. Premium-only annual/full skill data is not fabricated or presented as available.
+    *   **Skill Bracket & Mathematical Exactness**: Verified exact battles and raw metric accumulators conservation ($b_{\text{all}} = \sum b_i, \text{wins}_{\text{all}} = \sum \text{wins}_i, \text{dmg}_{\text{all}} = \sum \text{dmg}_i, \text{frags}_{\text{all}} = \sum \text{frags}_i$) across ShipTool’s public All, Low, Medium, and High groups.
     *   **Battle-Weighted Normalization**: Verified exact weighted aggregate metrics: $\text{WR} = \sum \text{wins} / \sum \text{games} \times 100\%$, $\text{AvgDmg} = \sum \text{dmg} / \sum \text{games}$, $\text{FragRate} = \sum \text{frags} / \sum \text{games}$, $\text{SurvRate} = \sum \text{surv} / \sum \text{games} \times 100\%$, $\text{AvgXP} = \sum \text{xp} / \sum \text{games}$.
     *   **Personal Rating (PR) Engine**: Verified community standard formula ($r\text{Dmg} = \text{avgDmg}/\text{expDmg}$, $r\text{Frags} = \text{avgFrags}/\text{expFrags}$, $r\text{Win} = \text{winRate}/\text{expWinRate}$, $n\text{Dmg} = \max(0, (r\text{Dmg}-0.4)/0.6)$, $n\text{Frags} = \max(0, (r\text{Frags}-0.1)/0.9)$, $n\text{Win} = \max(0, (r\text{Win}-0.7)/0.3)$, $\text{PR} = 700 \cdot n\text{Dmg} + 300 \cdot n\text{Frags} + 150 \cdot n\text{Win}$) with PR = 1150 at baseline, PR = 0 at zero, and exact tier boundaries/hex colors across all 7 tiers (<750 Below Average, 750–1100 Average, 1100–1350 Good, 1350–1550 Very Good, 1550–1750 Great, 1750–2100 Unicum, 2100+ Super Unicum).
     *   **Cross-Domain Acquisition Filtering**: Verified filtering server performance statistics across Coal, Steel, Research Bureau, Dockyard, Tech Tree, and Removed categories.
     *   **Frontend UI & Store Integration**: Full verification for `useStatsStore.ts`, `prCalculator.ts`, and `ServerStatsView.tsx` with sticky pinned columns, interactive sorting, min-max heatmap coloring, and battle-weighted KPI summary row.
-*   **Phase 6 Verification (`scripts/verify_phase6.mjs`)**: 83/83 tests passing.
+*   **Phase 6 Verification (`scripts/verify_phase6.mjs`)**: 86/86 tests passing.
     *   **PWA Web App Manifest (`manifest.json`)**: Configured standalone display, `#020617` theme/background color, icon suite (192px, 512px, SVG), and meta headers.
     *   **Service Worker Offline Caching (`sw.js`)**: Cache-first strategy for static assets and Stale-While-Revalidate caching for core columnar datasets (`/data/catalog.json`, `/data/locales/en.json`, `/data/armory_master.json`, `/data/stats/`, `/data/details/`). Offline fallback handling for `/api/`.
     *   **Network Offline Detection Hook (`useOnlineStatus`)**: Real-time detection using `navigator.onLine` and window `online`/`offline` listeners, integrated with visual status pill and offline notification banner in `Header.tsx`.
@@ -234,7 +239,7 @@ The automated test suite (`npm test`) executes **1,362 total tests** across **44
   * Complete 10-parameter Survivability (`p=SRV`) matrix with authentic formulas (Repair %, Citadel repair %, Torpedo protection, Fire/Flood durations).
   * 100% column header parity across all parameter presets with shiptool.st.
   * Executable one-command quick launch orchestrator (`start.sh` / `npm start`).
-  * Grand Total: **1,362 / 1,362 passing tests (100% pass rate)**; clean production build.
+  * Grand Total: **1,399 / 1,399 passing tests (100% pass rate)**; clean production build.
 
 ---
 
@@ -255,6 +260,3 @@ The automated test suite (`npm test`) executes **1,362 total tests** across **44
   - Extract and promote `repairPct`, `citadelRepairPct`, `fireResistance`, `fireDuration`, `fireDamage`, `noOfFires`, `torpedoProtection`, `floodingDuration`, `floodingDamage`, `noOfFloodings`.
   - Standardize column headers across General, Survivability, Artillery, Torpedoes, AA, and ASW.
   - Verification suite `verify_shiptool_columns.mjs` (92 automated tests).
-
-
-

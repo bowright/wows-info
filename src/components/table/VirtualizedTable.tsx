@@ -143,6 +143,17 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
         track('sigma', s.artillery.sigma);
         track('overmatchMm', s.artillery.overmatchMm);
       }
+      if (s.secondary) {
+        track('secondaryRangeKm', s.secondary.rangeKm);
+        track('secondaryCaliberMm', s.secondary.caliberMm);
+        track('secondaryBarrels', s.secondary.totalBarrels);
+        track('secondaryReload', s.secondary.reload);
+        track('secondaryHeDpm', s.secondary.heDpm);
+        track('secondaryApDpm', s.secondary.apDpm);
+        track('secondarySapDpm', s.secondary.sapDpm);
+        track('secondaryFireChance', s.secondary.fireChance);
+        track('secondaryPenetrationMm', s.secondary.penetrationMm);
+      }
       track('traverse180', s.traverse180);
       track('horizontalDispersion', s.horizontalDispersion);
       track('verticalDispersion', s.verticalDispersion);
@@ -318,7 +329,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                 : 'text-slate-200';
               return (
                 <span className={`font-mono text-xs ${colorClass}`}>
-                  {format(val)}
+                  {format(val) ?? '—'}
                 </span>
               );
             },
@@ -362,14 +373,27 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       addCol('rangeKm', 'Range', (s) => s.artillery?.rangeKm, (v) => `${v.toFixed(2)} km`, true, 85);
       addCol('reload', 'Reload', (s) => s.artillery?.reload, (v) => `${v.toFixed(1)}s`, false, 80);
       addCol('traverse180', '180° turn', (s) => s.traverse180, (v) => `${v.toFixed(1)}s`, false, 85);
-      addCol('heDpm', 'HE DPM', (s) => s.artillery?.heDpm, (v) => v.toLocaleString(), true, 90);
-      addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance, (v) => `${v}%`, true, 85);
-      addCol('apDpm', 'AP DPM', (s) => s.artillery?.apDpm, (v) => v.toLocaleString(), true, 90);
-      addCol('sapDpm', 'SAP DPM', (s) => s.artillery?.sapDpm, (v) => (v > 0 ? v.toLocaleString() : null), true, 90);
+      addCol('heDpm', 'HE DPM', (s) => s.artillery?.heDpm || null, (v) => v.toLocaleString(), true, 90);
+      addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance || null, (v) => `${v}%`, true, 85);
+      addCol('apDpm', 'AP DPM', (s) => s.artillery?.apDpm || null, (v) => v.toLocaleString(), true, 90);
+      addCol('sapDpm', 'SAP DPM', (s) => s.artillery?.sapDpm || null, (v) => v.toLocaleString(), true, 90);
       addCol('overmatchMm', 'Overmatch', (s) => s.artillery?.overmatchMm, (v) => `${v}mm`, true, 85);
       addCol('horizontalDispersion', 'Horiz. dispersion', (s) => s.horizontalDispersion, (v) => `${v}m`, false, 110);
       addCol('verticalDispersion', 'Vert. dispersion', (s) => s.verticalDispersion, (v) => `${v}m`, false, 105);
       addCol('sigma', 'Sigma', (s) => s.artillery?.sigma, (v) => `${v.toFixed(2)}`, true, 75);
+    }
+
+    // Secondary battery preset
+    if (activePreset === 'secondary' || activePreset === 'all') {
+      addCol('secondaryRangeKm', 'Secondary range', (s) => s.secondary?.rangeKm, (v) => `${v.toFixed(2)} km`, true, 110);
+      addCol('secondaryCaliberMm', 'Secondary caliber', (s) => s.secondary?.caliberMm, (v) => `${v}mm`, true, 110);
+      addCol('secondaryBarrels', 'Secondary barrels', (s) => s.secondary?.totalBarrels, (v) => `${v}`, true, 115);
+      addCol('secondaryReload', 'Secondary reload', (s) => s.secondary?.reload, (v) => `${v.toFixed(1)}s`, false, 110);
+      addCol('secondaryHeDpm', 'Secondary HE DPM', (s) => s.secondary?.heDpm || null, (v) => v.toLocaleString(), true, 125);
+      addCol('secondaryApDpm', 'Secondary AP DPM', (s) => s.secondary?.apDpm || null, (v) => v.toLocaleString(), true, 125);
+      addCol('secondarySapDpm', 'Secondary SAP DPM', (s) => s.secondary?.sapDpm || null, (v) => v.toLocaleString(), true, 130);
+      addCol('secondaryFireChance', 'Secondary fire chance', (s) => s.secondary?.fireChance, (v) => `${v}%`, true, 135);
+      addCol('secondaryPenetrationMm', 'Secondary penetration', (s) => s.secondary?.penetrationMm, (v) => `${v}mm`, true, 140);
     }
 
     // Torpedoes preset columns

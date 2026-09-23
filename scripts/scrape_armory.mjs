@@ -7,8 +7,7 @@ const __dirname = path.dirname(__filename);
 
 export const ARMORY_URL = 'https://armory.worldofwarships.eu/en/';
 export const DEFAULT_SNAPSHOT_PATHS = [
-  path.resolve(__dirname, '../scratch/armory.html'),
-  path.resolve(__dirname, '../../../../brain/97a87afa-13d4-4b68-8c2d-42d8aa3e1bb6/scratch/armory.html')
+  path.resolve(__dirname, '../scratch/armory.html')
 ];
 
 /**
@@ -69,6 +68,13 @@ export function normalizeArmoryData(rawState) {
       totalEntitlements: entitlements.length,
       shipCount: shipEntitlements.length
     };
+
+    // A zero-price sequential mission is an entitlement step, not a direct
+    // Doubloon offer. Do not publish it as a purchasable Armory ship.
+    if (bundleInfo.price <= 0 || /_Free/i.test(bundleInfo.title)) {
+      continue;
+    }
+
     shipBundlesMap.set(String(bId), bundleInfo);
 
     for (const ent of shipEntitlements) {

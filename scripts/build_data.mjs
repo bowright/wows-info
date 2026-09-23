@@ -55,7 +55,10 @@ export async function buildData(options = {}) {
     paragon_xp: 'Research Points',
     credits: 'Credits',
     free_xp: 'Free XP',
-    community: 'Community Tokens'
+    community: 'Community Tokens',
+    eventum_10: 'Expedition Tokens',
+    eventum_6: 'Pan-American Tokens',
+    eventum_4: 'Event Tokens'
   };
 
   const masterShipAcquisition = {};

@@ -135,7 +135,7 @@ async function runVerification() {
 
   // Filter by Removed
   const removedShips = filterShips(catalog, { selectedAcquisitions: ['Removed'] });
-  assert(removedShips.length === 26, `Filter by Removed returns exactly 26 ships (found ${removedShips.length})`);
+  assert(removedShips.length === 30, `Filter by Removed returns exactly 30 ships (found ${removedShips.length})`);
   assert(removedShips.some((s) => s.dispName === 'Musashi'), 'Found Musashi in Removed ships');
   assert(removedShips.some((s) => s.dispName === 'Småland'), 'Found Småland in Removed ships');
 
@@ -175,12 +175,12 @@ async function runVerification() {
   console.log('\nSuite 3: Clones & Replicas Filtering');
 
   const totalClones = catalog.filter((s) => s.acquisition?.isClone).length;
-  assert(totalClones === 84, `Catalog contains exactly 84 clone ships (found ${totalClones})`);
+  assert(totalClones === 110, `Catalog contains exactly 110 clone ships (found ${totalClones})`);
 
   const unclonedShips = filterShips(catalog, { hideClones: true });
   assert(
-    unclonedShips.length === catalog.length - 84,
-    `Hide Clones removes all 84 clone ships: 993 -> ${unclonedShips.length} ships (expected 909)`
+    unclonedShips.length === catalog.length - 110,
+    `Hide Clones removes all 110 clone ships: 993 -> ${unclonedShips.length} ships (expected 883)`
   );
   assert(
     unclonedShips.every((s) => !s.acquisition?.isClone),
@@ -193,7 +193,7 @@ async function runVerification() {
 
   // Filter by Clones specifically
   const onlyClones = filterShips(catalog, { selectedAcquisitions: ['Clones'] });
-  assert(onlyClones.length === 84, `Filtering specifically by Clones returns all 84 replica ships (found ${onlyClones.length})`);
+  assert(onlyClones.length === 110, `Filtering specifically by Clones returns all 110 replica ships (found ${onlyClones.length})`);
 
   // --- Suite 4: Search Query Filtering Precision ---
   console.log('\nSuite 4: Search Query Precision');
@@ -256,6 +256,7 @@ async function runVerification() {
   assert(tableContent.includes("'general'"), "Presets support 'general'");
   assert(tableContent.includes("'survivability'"), "Presets support 'survivability'");
   assert(tableContent.includes("'artillery'"), "Presets support 'artillery'");
+  assert(tableContent.includes("'secondary'"), "Presets support 'secondary'");
   assert(tableContent.includes("'torpedoes'"), "Presets support 'torpedoes'");
   assert(tableContent.includes("'aa'"), "Presets support 'aa'");
   assert(tableContent.includes("'asw'"), "Presets support 'asw'");

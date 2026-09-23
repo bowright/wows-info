@@ -131,6 +131,340 @@ export function calcHorizontalDispersion(artillery, rangeKm) {
   return Math.round(disp);
 }
 
+function parseArtilleryData(artillery, fireControl, projMap) {
+  if (!artillery?.COMMON) return null;
+
+  const common = artillery.COMMON;
+  const caliberMm = Math.round((common.barrelDiameter || 0) * 1000);
+  const turrets = Object.keys(artillery).filter((key) => /^HP_.*GM/i.test(key)).length;
+  const numBarrels = common.numBarrels || 1;
+  const totalBarrels = turrets * numBarrels;
+  const reload = common.shotDelay ? Math.round(common.shotDelay * 100) / 100 : 0;
+  const traverse180 = common.rotationSpeed?.[0]
+    ? Math.round((180 / common.rotationSpeed[0]) * 10) / 10
+    : 0;
+  const rangeKm = Math.round(((artillery.maxDist || 0) * (fireControl?.maxDistCoef || 1) / 1000) * 100) / 100;
+  const sigma = artillery.sigmaCount ? Math.round(artillery.sigmaCount * 100) / 100 : 2.0;
+  const horizontalDispersion = calcHorizontalDispersion(artillery, rangeKm);
+  const verticalDispersion = Math.round(horizontalDispersion * (common.radiusOnMax || 0.6));
+
+  const shells = { he: null, ap: null, sap: null };
+  for (const ammoName of Array.isArray(common.ammoList) ? common.ammoList : []) {
+    const projectile = projMap.get(ammoName);
+    if (!projectile) continue;
+    const damage = projectile.alphaDamage || 0;
+    const dpm = reload > 0 ? Math.round((60 / reload) * totalBarrels * damage) : 0;
+
+    if (projectile.ammoType === 'HE') {
+      shells.he = {
+        name: ammoName,
+        damage,
+        dpm,
+        fireChance: projectile.burnProb != null ? Math.round(projectile.burnProb * 100) : 0,
+        penetrationMm: projectile.alphaPiercingHE || Math.floor(caliberMm / 6),
+        bulletSpeed: projectile.bulletSpeed || 0
+      };
+    } else if (projectile.ammoType === 'AP') {
+      shells.ap = {
+        name: ammoName,
+        damage,
+        dpm,
+        krupp: projectile.bulletKrupp || 0,
+        bulletMass: projectile.bulletMass || 0,
+        bulletSpeed: projectile.bulletSpeed || 0,
+        muzzlePenetrationMm: calculateKruppPenetration(
+          projectile.bulletKrupp,
+          projectile.bulletMass,
+          projectile.bulletSpeed,
+          projectile.bulletDiametr
+        ),
+        overmatchMm: calculateOvermatch(caliberMm),
+        ricochetStart: projectile.bulletRicochetAt || 45,
+        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 60
+      };
+    } else if (projectile.ammoType === 'CS') {
+      shells.sap = {
+        name: ammoName,
+        damage,
+        dpm,
+        penetrationMm: projectile.alphaPiercingCS || 0,
+        bulletSpeed: projectile.bulletSpeed || 0,
+        ricochetStart: projectile.bulletRicochetAt || 70,
+        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 80
+      };
+    }
+  }
+
+  return {
+    caliberMm,
+    turrets,
+    barrelsPerTurret: numBarrels,
+    totalBarrels,
+    reload,
+    traverse180,
+    rangeKm,
+    sigma,
+    horizontalDispersion,
+    verticalDispersion,
+    he: shells.he,
+    ap: shells.ap,
+    sap: shells.sap
+  };
+}
+
+function parseTorpedoData(torpedo, projMap) {
+  if (!torpedo?.COMMON) return null;
+
+  const common = torpedo.COMMON;
+  const launchers = Object.keys(torpedo).filter((key) => /^HP_.*(GT|T_\d+)/i.test(key)).length;
+  const barrelsPerLauncher = common.numBarrels || 1;
+  const totalTubes = launchers * barrelsPerLauncher;
+  const reload = common.shotDelay ? Math.round(common.shotDelay * 10) / 10 : 0;
+  const projectile = common.ammoList?.[0] ? projMap.get(common.ammoList[0]) : null;
+  if (!projectile) return null;
+
+  const rangeKm = projectile.maxDist ? Math.round(projectile.maxDist * 0.03 * 10) / 10 : 0;
+  return {
+    launchers,
+    barrelsPerLauncher,
+    totalTubes,
+    reload,
+    rangeKm,
+    speed: projectile.speed || 0,
+    damage: Math.round((projectile.alphaDamage || 0) / 3 + (projectile.damage || 0)),
+    detectabilityKm: projectile.visibilityFactor || 0,
+    reactionTimeSeconds: projectile.speed && projectile.visibilityFactor
+      ? Math.round((projectile.visibilityFactor / (projectile.speed * 0.0026)) * 10) / 10
+      : null,
+    floodChance: projectile.uwCritical ? Math.round(projectile.uwCritical * 100) : 0,
+    isDeepWater: Boolean(projectile.isDeepWater)
+  };
+}
+
+function parseSecondaryData(ship, atbaKeys, projMap) {
+  const mounts = [];
+  let rangeM = 0;
+
+  for (const key of atbaKeys) {
+    const atba = ship[key];
+    if (!atba || typeof atba !== 'object') continue;
+    rangeM = Math.max(rangeM, atba.maxDist || 0);
+    const common = atba.COMMON || {};
+    const mountEntries = Object.entries(atba)
+      .filter(([mountKey, value]) => /^HP_/.test(mountKey) && value && typeof value === 'object');
+
+    for (const [mountKey, mount] of mountEntries) {
+      const ammoList = Array.isArray(mount.ammoList) && mount.ammoList.length > 0
+        ? mount.ammoList
+        : common.ammoList;
+      if (!Array.isArray(ammoList) || ammoList.length === 0) continue;
+
+      mounts.push({
+        mountKey,
+        ammoList,
+        caliberMm: Math.round((mount.barrelDiameter || common.barrelDiameter || 0) * 1000),
+        numBarrels: mount.numBarrels || common.numBarrels || 1,
+        reload: mount.shotDelay || common.shotDelay || 0
+      });
+    }
+
+    // Some carrier ATBA objects keep all mount data in COMMON and expose only
+    // positional HP_* entries. Use the common definition for those mounts.
+    if (mountEntries.length === 0 && Array.isArray(common.ammoList) && common.ammoList.length > 0) {
+      mounts.push({
+        mountKey: key,
+        ammoList: common.ammoList,
+        caliberMm: Math.round((common.barrelDiameter || 0) * 1000),
+        numBarrels: common.numBarrels || 1,
+        reload: common.shotDelay || 0
+      });
+    }
+  }
+
+  if (mounts.length === 0) return null;
+
+  const totals = {
+    heDpm: 0,
+    apDpm: 0,
+    sapDpm: 0,
+    fireChance: null,
+    penetrationMm: null
+  };
+  let totalBarrels = 0;
+  let caliberMm = 0;
+  let reload = null;
+  const shellTypes = new Set();
+
+  for (const mount of mounts) {
+    totalBarrels += mount.numBarrels;
+    caliberMm = Math.max(caliberMm, mount.caliberMm);
+    if (mount.reload > 0) reload = reload == null ? mount.reload : Math.min(reload, mount.reload);
+
+    for (const ammoName of mount.ammoList) {
+      const projectile = projMap.get(ammoName);
+      if (!projectile) continue;
+      const dpm = mount.reload > 0
+        ? Math.round((60 / mount.reload) * mount.numBarrels * (projectile.alphaDamage || 0))
+        : 0;
+      const penetration = projectile.ammoType === 'HE'
+        ? (projectile.alphaPiercingHE || Math.floor(mount.caliberMm / 6))
+        : projectile.ammoType === 'CS'
+          ? (projectile.alphaPiercingCS || 0)
+          : projectile.alphaPiercingAP || 0;
+
+      if (projectile.ammoType === 'HE') {
+        totals.heDpm += dpm;
+        if (projectile.burnProb != null && projectile.burnProb >= 0) {
+          const chance = Math.round(projectile.burnProb * 100);
+          totals.fireChance = totals.fireChance == null ? chance : Math.max(totals.fireChance, chance);
+        }
+        shellTypes.add('HE');
+      } else if (projectile.ammoType === 'AP') {
+        totals.apDpm += dpm;
+        shellTypes.add('AP');
+      } else if (projectile.ammoType === 'CS') {
+        totals.sapDpm += dpm;
+        shellTypes.add('SAP');
+      } else {
+        continue;
+      }
+
+      if (penetration > 0) {
+        totals.penetrationMm = totals.penetrationMm == null
+          ? penetration
+          : Math.max(totals.penetrationMm, penetration);
+      }
+    }
+  }
+
+  return {
+    rangeKm: rangeM > 0 ? Math.round((rangeM / 1000) * 100) / 100 : null,
+    caliberMm,
+    totalBarrels,
+    reload,
+    heDpm: totals.heDpm,
+    apDpm: totals.apDpm,
+    sapDpm: totals.sapDpm,
+    fireChance: totals.fireChance,
+    penetrationMm: totals.penetrationMm,
+    shellTypes: [...shellTypes],
+    mounts
+  };
+}
+
+function summarizeAircraft(aircraft, projMap) {
+  if (!aircraft) return null;
+  const payload = aircraft.bombName ? projMap.get(aircraft.bombName) : null;
+  return {
+    name: aircraft.name,
+    maxHealth: aircraft.maxHealth || 0,
+    squadronSize: aircraft.numPlanesInSquadron || 0,
+    attackerSize: aircraft.attackerSize || 0,
+    attackCount: aircraft.attackCount || 0,
+    projectilesPerAttack: aircraft.projectilesPerAttack || 0,
+    hangarSize: aircraft.hangarSettings?.maxValue || 0,
+    restorationTimeSeconds: aircraft.hangarSettings?.timeToRestore || 0,
+    speed: aircraft.speedMoveWithBomb || 0,
+    payload: payload ? {
+      name: payload.name,
+      type: payload.ammoType,
+      alphaDamage: payload.alphaDamage || 0,
+      fireChance: payload.burnProb >= 0 ? Math.round(payload.burnProb * 100) : null
+    } : null
+  };
+}
+
+function parseAircraftData(ship, aircraftMap, projMap) {
+  if (ship.typeinfo?.species !== 'AirCarrier') return null;
+
+  const typeMap = {
+    attackAircraft: ['_Fighter', 'fighter'],
+    torpedoBombers: ['_TorpedoBomber', 'torpedoBomber'],
+    diveBombers: ['_DiveBomber', 'diveBomber'],
+    skipBombers: ['_SkipBomber', 'skipBomber']
+  };
+  const result = {};
+  let found = false;
+
+  for (const [outputKey, [ucType, componentType]] of Object.entries(typeMap)) {
+    const entries = Object.entries(ship.ShipUpgradeInfo || {})
+      .filter(([, value]) => value?.ucType === ucType)
+      .map(([key, value]) => ({ key, ...value }));
+    const entry = entries.at(-1);
+    const componentKey = entry?.components?.[componentType]?.[0];
+    const planeNames = componentKey && Array.isArray(ship[componentKey]?.planes)
+      ? ship[componentKey].planes
+      : [];
+    const planes = planeNames
+      .map((name) => summarizeAircraft(aircraftMap.get(name), projMap))
+      .filter(Boolean);
+    result[outputKey] = planes.length > 0 ? { planes } : null;
+    found ||= planes.length > 0;
+  }
+
+  return found ? result : null;
+}
+
+function parseSubmarineData(ship, hull, hullComponents) {
+  if (ship.typeinfo?.species !== 'Submarine') return null;
+
+  const pingerObjects = (hullComponents.pinger || [])
+    .map((key) => ship[key])
+    .filter(Boolean);
+  const pingRanges = pingerObjects.map((pinger) => pinger.waveDistance).filter((value) => value > 0);
+  const pingReloads = pingerObjects.map((pinger) => pinger.waveReloadTime).filter((value) => value > 0);
+  const pingSpeeds = pingerObjects.flatMap((pinger) => pinger.waveParams?.[0]?.waveSpeed || []).filter((value) => value > 0);
+  const pingDurations = pingerObjects.flatMap((pinger) => pinger.sectorParams || [])
+    .map((sector) => sector.lifetime)
+    .filter((value) => value > 0);
+  const battery = hull.SubmarineBattery || null;
+
+  return {
+    diveCapacity: battery?.capacity ?? null,
+    diveCapacityRechargeRate: battery?.regenRate ?? null,
+    submergedSpeed: hull.maxBuoyancySpeed ?? null,
+    periscopeDetectabilityKm: hull.visibilityFactorsBySubmarine?.PERISCOPE ?? null,
+    pingRangeKm: pingRanges.length > 0 ? Math.max(...pingRanges) / 1000 : null,
+    pingReloadTime: pingReloads.length > 0 ? Math.min(...pingReloads) : null,
+    pingSpeed: pingSpeeds.length > 0 ? Math.max(...pingSpeeds) : null,
+    pingDurationsSeconds: [...new Set(pingDurations)]
+  };
+}
+
+function toCatalogArtillery(data) {
+  if (!data) return null;
+  return {
+    caliberMm: data.caliberMm,
+    totalBarrels: data.totalBarrels,
+    reload: data.reload,
+    traverse180: data.traverse180,
+    rangeKm: data.rangeKm,
+    sigma: data.sigma,
+    horizontalDispersion: data.horizontalDispersion,
+    verticalDispersion: data.verticalDispersion,
+    heDpm: data.he?.dpm || 0,
+    apDpm: data.ap?.dpm || 0,
+    sapDpm: data.sap?.dpm || 0,
+    heAlpha: data.he?.damage ?? null,
+    apAlpha: data.ap?.damage ?? null,
+    sapAlpha: data.sap?.damage ?? null,
+    fireChance: data.he?.fireChance || 0,
+    overmatchMm: data.ap?.overmatchMm || 0
+  };
+}
+
+function toCatalogTorpedoes(data) {
+  if (!data) return null;
+  return {
+    totalTubes: data.totalTubes,
+    rangeKm: data.rangeKm,
+    speed: data.speed,
+    damage: data.damage,
+    reload: data.reload,
+    detectabilityKm: data.detectabilityKm
+  };
+}
+
 /**
  * Ingests all ships and parses them into catalog and details representations.
  * @returns {{ catalog: Array<object>, detailsMap: Map<number, object> }}
@@ -172,6 +506,12 @@ export function parseGameParamsData() {
     return rawTrans[key]?.en || key;
   }
 
+  const translatedNameCounts = new Map();
+  for (const rawShip of rawShips) {
+    const name = tr(rawShip.NAME) || rawShip.name;
+    translatedNameCounts.set(name, (translatedNameCounts.get(name) || 0) + 1);
+  }
+
   const catalog = [];
   const detailsMap = new Map();
 
@@ -185,15 +525,20 @@ export function parseGameParamsData() {
     const topArt = modules.top.artilleryKey ? ship[modules.top.artilleryKey] : null;
     const stockArt = modules.stock.artilleryKey ? ship[modules.stock.artilleryKey] : null;
     const topTorp = modules.top.torpedoesKey ? ship[modules.top.torpedoesKey] : null;
+    const stockTorp = modules.stock.torpedoesKey ? ship[modules.stock.torpedoesKey] : null;
 
     // Basic Identification
-    const dispName = tr(ship.NAME) || ship.name;
+    const group = ship.group || 'upgradeable';
+    const baseDispName = tr(ship.NAME) || ship.name;
+    const dispName = translatedNameCounts.get(baseDispName) > 1 &&
+      (group === 'demoWithoutStats' || group === 'demoWithoutStatsPrem')
+      ? `${baseDispName} (Test)`
+      : baseDispName;
     const dispShortName = tr(ship.SHORTNAME) || dispName;
     const dispDesc = tr(ship.DESC) || '';
     const shipClass = ship.typeinfo?.species || 'Cruiser';
     const nation = ship.typeinfo?.nation || 'usa';
     const tier = ship.level || 1;
-    const group = ship.group || 'upgradeable';
     const isPremium = ['special', 'ultimate', 'premium', 'specialUnsellable'].includes(group);
     const isSpecial = group === 'ultimate' || group === 'specialUnsellable';
 
@@ -201,8 +546,11 @@ export function parseGameParamsData() {
     const health = topHull.health || 10000;
     const stockHealth = stockHull.health || health;
     const speed = topHull.maxSpeed || 30;
+    const stockSpeed = stockHull.maxSpeed || speed;
     const rudderTime = topHull.rudderTime ? Math.round(topHull.rudderTime * 10) / 10 : 0;
+    const stockRudderTime = stockHull.rudderTime ? Math.round(stockHull.rudderTime * 10) / 10 : rudderTime;
     const turningRadius = topHull.turningRadius || 0;
+    const stockTurningRadius = stockHull.turningRadius || turningRadius;
 
     // Survivability metrics matching shiptool.st (p=SRV)
     const repairPct = topHull.Hull?.regeneratedHPPart != null
@@ -231,129 +579,32 @@ export function parseGameParamsData() {
     // Concealment
     const concealmentSurface = topHull.visibilityFactor ? Math.round(topHull.visibilityFactor * 100) / 100 : null;
     const concealmentAir = topHull.visibilityFactorByPlane ? Math.round(topHull.visibilityFactorByPlane * 100) / 100 : null;
-    const concealmentSmoke = topHull.visibilityCoefGKInSmoke ? Math.round(topHull.visibilityCoefGKInSmoke * 100) / 100 : null;
+    const rawSmokePenalty = topHull.visibilityCoefGKInSmoke;
+    const concealmentSmoke = Number.isFinite(rawSmokePenalty) && rawSmokePenalty > 0.001
+      ? Math.round(rawSmokePenalty * 100) / 100
+      : null;
+    const stockConcealmentSurface = stockHull.visibilityFactor ? Math.round(stockHull.visibilityFactor * 100) / 100 : concealmentSurface;
+    const stockConcealmentAir = stockHull.visibilityFactorByPlane ? Math.round(stockHull.visibilityFactorByPlane * 100) / 100 : concealmentAir;
+    const stockRawSmokePenalty = stockHull.visibilityCoefGKInSmoke;
+    const stockConcealmentSmoke = Number.isFinite(stockRawSmokePenalty) && stockRawSmokePenalty > 0.001
+      ? Math.round(stockRawSmokePenalty * 100) / 100
+      : null;
 
     // Artillery / Main Battery
-    let artilleryData = null;
-    if (topArt && topArt.COMMON) {
-      const common = topArt.COMMON;
-      const caliberMm = Math.round((common.barrelDiameter || 0) * 1000);
-      const turrets = Object.keys(topArt).filter(k => /^HP_.*GM/i.test(k)).length;
-      const numBarrels = common.numBarrels || 1;
-      const totalBarrels = turrets * numBarrels;
-      const reload = common.shotDelay ? Math.round(common.shotDelay * 100) / 100 : 0;
-      const traverse180 = common.rotationSpeed?.[0] ? Math.round((180 / common.rotationSpeed[0]) * 10) / 10 : 0;
-
-      const baseRangeM = topArt.maxDist || 0;
-      const topRangeKm = Math.round(((baseRangeM * (topSuo?.maxDistCoef || 1)) / 1000) * 100) / 100;
-      const stockRangeKm = Math.round(((baseRangeM * (stockSuo?.maxDistCoef || 1)) / 1000) * 100) / 100;
-
-      const sigma = topArt.sigmaCount ? Math.round(topArt.sigmaCount * 100) / 100 : 2.0;
-      const horizDispAtMax = calcHorizontalDispersion(topArt, topRangeKm);
-      const vertRatio = common.radiusOnMax || 0.6;
-      const vertDispAtMax = Math.round(horizDispAtMax * vertRatio);
-
-      // Shells
-      const ammoList = Array.isArray(common.ammoList) ? common.ammoList : [];
-      let heShell = null;
-      let apShell = null;
-      let sapShell = null;
-
-      for (const ammoName of ammoList) {
-        const p = projMap.get(ammoName);
-        if (!p) continue;
-        if (p.ammoType === 'HE') {
-          const dmg = p.alphaDamage || 0;
-          const dpm = reload > 0 ? Math.round((60 / reload) * totalBarrels * dmg) : 0;
-          heShell = {
-            name: ammoName,
-            damage: dmg,
-            dpm,
-            fireChance: p.burnProb != null ? Math.round(p.burnProb * 100) : 0,
-            penetrationMm: p.alphaPiercingHE || Math.floor(caliberMm / 6),
-            bulletSpeed: p.bulletSpeed || 0
-          };
-        } else if (p.ammoType === 'AP') {
-          const dmg = p.alphaDamage || 0;
-          const dpm = reload > 0 ? Math.round((60 / reload) * totalBarrels * dmg) : 0;
-          apShell = {
-            name: ammoName,
-            damage: dmg,
-            dpm,
-            krupp: p.bulletKrupp || 0,
-            bulletMass: p.bulletMass || 0,
-            bulletSpeed: p.bulletSpeed || 0,
-            muzzlePenetrationMm: calculateKruppPenetration(p.bulletKrupp, p.bulletMass, p.bulletSpeed, p.bulletDiametr),
-            overmatchMm: calculateOvermatch(caliberMm),
-            ricochetStart: p.bulletRicochetAt || 45,
-            alwaysRicochet: p.bulletAlwaysRicochetAt || 60
-          };
-        } else if (p.ammoType === 'CS') {
-          const dmg = p.alphaDamage || 0;
-          const dpm = reload > 0 ? Math.round((60 / reload) * totalBarrels * dmg) : 0;
-          sapShell = {
-            name: ammoName,
-            damage: dmg,
-            dpm,
-            penetrationMm: p.alphaPiercingCS || 0,
-            bulletSpeed: p.bulletSpeed || 0,
-            ricochetStart: p.bulletRicochetAt || 70,
-            alwaysRicochet: p.bulletAlwaysRicochetAt || 80
-          };
-        }
-      }
-
-      artilleryData = {
-        caliberMm,
-        turrets,
-        barrelsPerTurret: numBarrels,
-        totalBarrels,
-        reload,
-        traverse180,
-        rangeKm: topRangeKm,
-        stockRangeKm,
-        sigma,
-        horizontalDispersion: horizDispAtMax,
-        verticalDispersion: vertDispAtMax,
-        he: heShell,
-        ap: apShell,
-        sap: sapShell
-      };
-    }
+    const artilleryData = parseArtilleryData(topArt, topSuo, projMap);
+    const stockArtilleryData = parseArtilleryData(stockArt, stockSuo, projMap);
 
     // Torpedoes
-    let torpedoData = null;
-    if (topTorp && topTorp.COMMON) {
-      const common = topTorp.COMMON;
-      const launchers = Object.keys(topTorp).filter(k => /^HP_.*(GT|T_\d+)/i.test(k)).length;
-      const barrelsPerLauncher = common.numBarrels || 1;
-      const totalTubes = launchers * barrelsPerLauncher;
-      const reload = common.shotDelay ? Math.round(common.shotDelay * 10) / 10 : 0;
-
-      const ammoName = common.ammoList?.[0];
-      const p = ammoName ? projMap.get(ammoName) : null;
-      if (p) {
-        const torpRangeKm = p.maxDist ? Math.round((p.maxDist * 0.03) * 10) / 10 : 0;
-        const damage = Math.round((p.alphaDamage || 0) / 3 + (p.damage || 0));
-        torpedoData = {
-          launchers,
-          barrelsPerLauncher,
-          totalTubes,
-          reload,
-          rangeKm: torpRangeKm,
-          speed: p.speed || 0,
-          damage,
-          detectabilityKm: p.visibilityFactor || 0,
-          reactionTimeSeconds: p.speed && p.visibilityFactor ? Math.round((p.visibilityFactor / (p.speed * 0.0026)) * 10) / 10 : null,
-          floodChance: p.uwCritical ? Math.round(p.uwCritical * 100) : 0,
-          isDeepWater: Boolean(p.isDeepWater)
-        };
-      }
-    }
+    const torpedoData = parseTorpedoData(topTorp, projMap);
+    const stockTorpedoData = parseTorpedoData(stockTorp, projMap);
 
     // Top Hull Upgrade components
     const topHullUpgrade = Object.values(ship.ShipUpgradeInfo || {}).find(u => u.components?.hull?.includes(modules.top.hullKey));
     const hullComp = topHullUpgrade?.components || {};
+
+    const secondaryData = parseSecondaryData(ship, hullComp.atba || [], projMap);
+    const aircraftData = parseAircraftData(ship, aircraftMap, projMap);
+    const submarineData = parseSubmarineData(ship, topHull, hullComp);
 
     // AA Defense Extraction
     const airDefenseKeys = hullComp.airDefense || [];
@@ -488,11 +739,17 @@ export function parseGameParamsData() {
       health,
       stockHealth,
       speed,
+      stockSpeed,
       rudderTime,
+      stockRudderTime,
       turningRadius,
+      stockTurningRadius,
       concealmentSurface,
       concealmentAir,
       concealmentSmoke,
+      stockConcealmentSurface,
+      stockConcealmentAir,
+      stockConcealmentSmoke,
       smokePenalty: concealmentSmoke ?? null,
 
       // Promoted scalar columns for 60fps virtualized table
@@ -507,6 +764,17 @@ export function parseGameParamsData() {
       aaDps: totalAaDps > 0 ? totalAaDps : null,
       flakCount: flakCount > 0 ? flakCount : null,
       aswRange: aswData ? aswData.rangeKm : null,
+      secondary: secondaryData ? {
+        rangeKm: secondaryData.rangeKm,
+        caliberMm: secondaryData.caliberMm,
+        totalBarrels: secondaryData.totalBarrels,
+        reload: secondaryData.reload,
+        heDpm: secondaryData.heDpm,
+        apDpm: secondaryData.apDpm,
+        sapDpm: secondaryData.sapDpm,
+        fireChance: secondaryData.fireChance,
+        penetrationMm: secondaryData.penetrationMm
+      } : null,
 
       // Survivability metrics matching shiptool.st (p=SRV)
       repairPct,
@@ -521,27 +789,13 @@ export function parseGameParamsData() {
       noOfFloodings,
 
       artillery: artilleryData ? {
-        caliberMm: artilleryData.caliberMm,
-        totalBarrels: artilleryData.totalBarrels,
-        reload: artilleryData.reload,
-        traverse180: artilleryData.traverse180,
-        rangeKm: artilleryData.rangeKm,
-        sigma: artilleryData.sigma,
-        horizontalDispersion: artilleryData.horizontalDispersion,
-        verticalDispersion: artilleryData.verticalDispersion,
-        heDpm: artilleryData.he?.dpm || 0,
-        apDpm: artilleryData.ap?.dpm || 0,
-        sapDpm: artilleryData.sap?.dpm || 0,
-        fireChance: artilleryData.he?.fireChance || 0,
-        overmatchMm: artilleryData.ap?.overmatchMm || 0
+        ...toCatalogArtillery(artilleryData),
+        stockRangeKm: stockArtilleryData?.rangeKm ?? null,
+        stock: toCatalogArtillery(stockArtilleryData)
       } : null,
       torpedoes: torpedoData ? {
-        totalTubes: torpedoData.totalTubes,
-        rangeKm: torpedoData.rangeKm,
-        speed: torpedoData.speed,
-        damage: torpedoData.damage,
-        reload: torpedoData.reload,
-        detectabilityKm: torpedoData.detectabilityKm
+        ...toCatalogTorpedoes(torpedoData),
+        stock: toCatalogTorpedoes(stockTorpedoData)
       } : null,
       aa: aaData ? {
         maxRange: aaData.maxRange,
@@ -552,7 +806,9 @@ export function parseGameParamsData() {
         type: aswData.type,
         rangeKm: aswData.rangeKm,
         reloadTime: aswData.reloadTime
-      } : null
+      } : null,
+      aircraft: aircraftData,
+      submarine: submarineData
     };
     catalog.push(catalogItem);
 
@@ -562,9 +818,14 @@ export function parseGameParamsData() {
       description: dispDesc,
       resolvedModules: modules,
       artilleryFull: artilleryData,
+      artilleryStockFull: stockArtilleryData,
       torpedoesFull: torpedoData,
+      torpedoesStockFull: stockTorpedoData,
+      secondaryFull: secondaryData,
       aa: aaData,
       asw: aswData,
+      aircraft: aircraftData,
+      submarine: submarineData,
       consumables: abilities
     };
     detailsMap.set(shipId, detailsItem);

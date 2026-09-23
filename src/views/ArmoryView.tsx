@@ -360,7 +360,7 @@ export const ArmoryView: React.FC<ArmoryViewProps> = ({ onNavigate }) => {
         <Loader2 className="w-10 h-10 text-amber-400 animate-spin" />
         <div className="text-center">
           <p className="text-sm font-semibold text-slate-200">Loading Armory Deals...</p>
-          <p className="text-xs text-slate-500">Retrieving 228 verified ship bundle entitlements</p>
+          <p className="text-xs text-slate-500">Retrieving 226 verified ship bundle entitlements</p>
         </div>
       </div>
     );

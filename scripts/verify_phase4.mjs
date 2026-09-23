@@ -32,7 +32,9 @@ function computeShortage(price, isCouponEligible, applyCoupon, userCoal, userSte
   const canAffordPureCoal = userCoal >= effectivePrice;
   const pureCoalRemaining = canAffordPureCoal ? userCoal - effectivePrice : 0;
   const pureCoalShortage = canAffordPureCoal ? 0 : effectivePrice - userCoal;
-  const daysToGoalPureCoal = pureCoalShortage > 0 ? Math.ceil(pureCoalShortage / dailyRate) : 0;
+  const daysToGoalPureCoal = dailyRate > 0 && pureCoalShortage > 0
+    ? Math.ceil(pureCoalShortage / dailyRate)
+    : 0;
 
   // 1:10 Steel substitution
   const steelNeededToCover = pureCoalShortage > 0 ? Math.ceil(pureCoalShortage / 10) : 0;
@@ -42,7 +44,9 @@ function computeShortage(price, isCouponEligible, applyCoupon, userCoal, userSte
   // Shortage when all Steel is substituted
   const remainingCoalShortageWithSteel = Math.max(0, effectivePrice - (userCoal + userSteel * 10));
   const effectiveSteelShortage = Math.ceil(remainingCoalShortageWithSteel / 10);
-  const daysToGoalWithSteel = remainingCoalShortageWithSteel > 0 ? Math.ceil(remainingCoalShortageWithSteel / dailyRate) : 0;
+  const daysToGoalWithSteel = dailyRate > 0 && remainingCoalShortageWithSteel > 0
+    ? Math.ceil(remainingCoalShortageWithSteel / dailyRate)
+    : 0;
 
   return {
     effectivePrice,
@@ -80,7 +84,7 @@ async function runVerification() {
   console.log('\nSuite 1: Armory Offers Breakdown & Catalog Linkage');
 
   assert(Array.isArray(armory.offers), 'armory_master.json contains offers array');
-  assert(armory.offers.length === 228, `Exactly 228 active ship bundle offers (found ${armory.offers.length})`);
+  assert(armory.offers.length === 226, `Exactly 226 active ship bundle offers (found ${armory.offers.length})`);
 
   const coalOffers = armory.offers.filter((o) => o.currency === 'coal');
   const steelOffers = armory.offers.filter((o) => o.currency === 'steel');
@@ -91,18 +95,18 @@ async function runVerification() {
   assert(coalOffers.length === 52, `Coal offers count is exactly 52 (found ${coalOffers.length})`);
   assert(steelOffers.length === 21, `Steel offers count is exactly 21 (found ${steelOffers.length})`);
   assert(rbOffers.length === 19, `Research Bureau offers count is exactly 19 (found ${rbOffers.length})`);
-  assert(goldOffers.length === 126, `Doubloon offers count is exactly 126 (found ${goldOffers.length})`);
+  assert(goldOffers.length === 124, `Doubloon offers count is exactly 124 (found ${goldOffers.length})`);
   assert(eventOffers.length === 10, `Event Token offers count is exactly 10 (found ${eventOffers.length})`);
 
   // Total sums
   assert(
-    coalOffers.length + steelOffers.length + rbOffers.length + goldOffers.length + eventOffers.length === 228,
-    'Sum of all category offers equals 228'
+    coalOffers.length + steelOffers.length + rbOffers.length + goldOffers.length + eventOffers.length === 226,
+    'Sum of all category offers equals 226'
   );
 
   // Unmatched verification
   const unmatched = armory.offers.filter((o) => !catalogMap.has(o.shipId));
-  assert(unmatched.length === 0, `All 228 armory offers match valid catalog ships (unmatched: ${unmatched.length})`);
+  assert(unmatched.length === 0, `All 226 armory offers match valid catalog ships (unmatched: ${unmatched.length})`);
 
   // --- Suite 2: Coupon Calculations across All Armory Currencies ---
   console.log('\nSuite 2: Coupon Calculations across All Armory Currencies');
@@ -119,11 +123,11 @@ async function runVerification() {
   );
   assert(steelCouponPass, '100% of 21 Steel ships are couponEligible with exact -25% couponPrice');
 
-  // Doubloons: all 126 coupon eligible (-25%)
+  // Doubloons: all 124 coupon eligible (-25%)
   const goldCouponPass = goldOffers.every(
     (o) => o.couponEligible === true && o.couponPrice === Math.round(o.price * 0.75)
   );
-  assert(goldCouponPass, '100% of 126 Doubloon ships are couponEligible with exact -25% couponPrice');
+  assert(goldCouponPass, '100% of 124 Doubloon ships are couponEligible with exact -25% couponPrice');
 
   // Research Bureau: strictly NOT eligible (0% discount, full price)
   const rbCouponPass = rbOffers.every(
@@ -179,16 +183,20 @@ async function runVerification() {
   assert(res4.effectiveSteelShortage === 7800, `Case 4: Remaining Steel shortage is 7,800 Steel (got ${res4.effectiveSteelShortage})`);
   assert(res4.daysToGoalWithSteel === 65, `Case 4: Math.ceil(78,000 / 1,200) = 65 days (got ${res4.daysToGoalWithSteel})`);
 
-  // Test Case 5: Coupon Applied (-25%) in Shortage Calculator
+  // Test Case 5: Zero daily rate must not produce Infinity.
+  const resZeroRate = computeShortage(228000, true, false, 100000, 0, 0);
+  assert(resZeroRate.daysToGoalPureCoal === 0 && resZeroRate.daysToGoalWithSteel === 0, 'Case 5: Zero daily Coal rate produces 0 days, not Infinity');
+
+  // Test Case 6: Coupon Applied (-25%) in Shortage Calculator
   // Tulsa base 180,000 Coal -> with coupon: 135,000 Coal.
   // User has 100,000 Coal, 3,500 Steel.
   const res5 = computeShortage(180000, true, true, 100000, 3500, 1200);
-  assert(res5.effectivePrice === 135000, 'Case 5: Tulsa coupon price is 135,000 Coal');
-  assert(res5.pureCoalShortage === 35000, 'Case 5: Coal shortage is 35,000 with coupon');
-  assert(res5.steelNeededToCover === 3500, 'Case 5: Exactly 3,500 Steel needed to cover 35,000 Coal');
-  assert(res5.canAffordWithSteel === true, 'Case 5: 3,500 Steel exactly covers the shortage (affordable)');
-  assert(res5.steelRemainingAfterCover === 0, 'Case 5: 0 Steel remaining after exact purchase');
-  assert(res5.daysToGoalWithSteel === 0, 'Case 5: 0 days to goal with Steel');
+  assert(res5.effectivePrice === 135000, 'Case 6: Tulsa coupon price is 135,000 Coal');
+  assert(res5.pureCoalShortage === 35000, 'Case 6: Coal shortage is 35,000 with coupon');
+  assert(res5.steelNeededToCover === 3500, 'Case 6: Exactly 3,500 Steel needed to cover 35,000 Coal');
+  assert(res5.canAffordWithSteel === true, 'Case 6: 3,500 Steel exactly covers the shortage (affordable)');
+  assert(res5.steelRemainingAfterCover === 0, 'Case 6: 0 Steel remaining after exact purchase');
+  assert(res5.daysToGoalWithSteel === 0, 'Case 6: 0 days to goal with Steel');
 
   // --- Suite 4: Dockyard Archive Completeness & Data Contracts ---
   console.log('\nSuite 4: Dockyard Archive Completeness & Data Contracts');

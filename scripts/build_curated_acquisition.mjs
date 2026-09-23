@@ -179,6 +179,34 @@ const REMOVED_SHIPS_LIST = [
     prevPrice: 6300
   },
   {
+    nameMatch: 'PRSB001_Nikolay_I',
+    note: 'Rare early-release premium battleship no longer sold directly',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'gold',
+    prevPrice: 3750
+  },
+  {
+    nameMatch: 'PGSB503_Koenig_Albert',
+    note: 'Removed after balance and matchmaking concerns for the Tier III premium battleship',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'gold',
+    prevPrice: 2500
+  },
+  {
+    nameMatch: 'PJSC026_Iwaki_1944',
+    note: 'Closed-beta / Alpha reward cruiser no longer sold directly',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'gold',
+    prevPrice: 2500
+  },
+  {
+    nameMatch: 'PASB013_Arkansas_1912',
+    note: 'Beta reward battleship no longer sold directly',
+    rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
+    prevCurrency: 'none',
+    prevPrice: null
+  },
+  {
     nameMatch: 'PJSD508_Asashio',
     note: 'Removed in 0.10.5 due to 20km deepwater BB/CV torpedoes',
     rarity: 'Santa / Supercontainer Tier 1 (Extremely Rare)',
@@ -286,8 +314,8 @@ const DOCKYARD_SHIPS_LIST = [
 const CLONE_PARENT_OVERRIDES = {
   'PGSB598_Black_Tirpitz': 'PGSB002_Tirpiz_1942',
   'PGSB818_BA_Tirpitz': 'PGSB002_Tirpiz_1942',
-  'PJSC708_ARP_Takao': 'PJSC017_Atago_1944',
-  'PJSC598_Black_Atago': 'PJSC017_Atago_1944',
+  'PJSC708_ARP_Takao': 'PJSC038_Atago_1944',
+  'PJSC598_Black_Atago': 'PJSC038_Atago_1944',
   'PJSB700_ARP_Yamato': 'PJSB018_Yamato_1944',
   'PJSB705_Kongou': 'PJSB007_Kongo_1942',
   'PJSB706_Kirishima': 'PJSB007_Kongo_1942',
@@ -298,9 +326,9 @@ const CLONE_PARENT_OVERRIDES = {
   'PJSC709_Haguro': 'PJSC008_Myoko_1945',
   'PJSC737_Nachi': 'PJSC008_Myoko_1945',
   'PRSB709_AZUR_Sov_Russia': 'PRSB109_Sovetsky_Soyuz',
-  'PASC718_AZUR_Montpelier': 'PASC015_Cleveland_1942',
+  'PASC718_AZUR_Montpelier': 'PASC208_Cleveland',
   'PISB708_AZUR_Littorio': 'PISB508_Roma',
-  'PJSD718_AZUR_Yukikaze': 'PJSD012_Kagero_1943',
+  'PJSD718_AZUR_Yukikaze': 'PJSD208_Kagero',
   'PJSC519_AZUR_Azuma': 'PJSC510_Azuma',
   'PASB820_BA_Montana': 'PASB017_Montana_1945',
   'PJSC819_BA_Takahashi': 'PJSC039_Takahashi',
@@ -311,8 +339,88 @@ const CLONE_PARENT_OVERRIDES = {
   'PJSB878_Ignis_Purgatio': 'PJSB013_Amagi_1942',
   'PJSB888_Ragnarok': 'PJSB013_Amagi_1942',
   'PGSC718_Warhammer_Blacktemplar': 'PGSC518_Mainz',
-  'PZSD718_Warhammer_Ork': 'PZSD508_Fenyang'
+  'PZSD718_Warhammer_Ork': 'PZSD518_Fen_Yang',
+
+  // Cosmetic/event variant series.
+  'PASB808_Colorful_North_Carolina': 'PASB012_North_Carolina_1945',
+  'PFSD810_Colorful_Kleber': 'PFSD110_Kleber',
+  'PGSC809_Colorful_Roon': 'PGSC109_Roon',
+  'PJSC890_CLR_Zao': 'PJSC034_Zao_1944',
+  'PBSB920_MC_Conqueror': 'PBSB110_Conqueror',
+  'PASB909_Pirate_Delaware': 'PASB209_Delaware',
+  'PBSC909_Pirate_Neptune': 'PBSC109_Neptune',
+  'PBSC920_Pirate_Plymouth': 'PBSC510_Plymouth',
+  'PFSB909_Pirate_Jean_Bart': 'PFSB518_Jean_Bart',
+  'PGSB918_Pirate_Brandenburg': 'PGSB518_Brandenburg',
+  'PWSD907_Pirate_Grom': 'PWSD207_Grom',
+  'PBSB747_STPatric_Duke_of_York': 'PBSB527_Duke_of_York',
+  'PBSC707_STPatric_Belfast_1959': 'PBSC507_Belfast_1959',
+  'PBSC708_STPatric_Belfast_1943': 'PBSC528_Belfast_1943',
+  'PBSC718_STPatric_Tiger_1959': 'PBSC518_Tiger_1959',
+  'PASB940_250TH_Wisconsin': 'PASB730_Wisconsin',
+  'PASC909_250TH_Fort_Worth': 'PASC729_Fort_Worth',
+  'PASC920_Gold_Hawaii': 'PASC720_Hawaii',
+  'PASB908_East_North_Carolina_1945': 'PASB012_North_Carolina_1945',
+  'PGSD910_East_Z_52': 'PGSD110_Z_52',
+  'PISC908_East_Amalfi': 'PISC108_Amalfi',
+  'PJSC905_East_Furutaka_1926': 'PJSC005_Furutaka_1926',
+  'PRSB909_East_Navarin': 'PRSB509_Navarin',
+
+  // Test/evaluation and variant hulls with a released parent.
+  'PFSD820_Kleber_TE': 'PFSD110_Kleber',
+  'PGSB828_Odin_TE': 'PGSB508_Odin',
+  'PRSB818_Borodino_TE': 'PRSB528_Borodino',
+  'PASB528_Alabama_VL': 'PASB508_Alabama',
+  'PASB708_Alabama': 'PASB508_Alabama'
 };
+
+const DOUBLOON_BASE_PRICE_BY_TIER = {
+  1: 250,
+  2: 750,
+  3: 1500,
+  4: 2500,
+  5: 3500,
+  6: 6500,
+  7: 8500,
+  8: 11500,
+  9: 19000,
+  10: 22500,
+  11: 25000
+};
+
+function findCloneParent(name) {
+  const override = CLONE_PARENT_OVERRIDES[name];
+  if (override) {
+    const parent = shipByName.get(override);
+    if (parent && parent.name !== name) return parent;
+  }
+
+  if (name.includes('_Black_')) {
+    const baseName = name.replace(/_Black_/, '_');
+    const parent = shipByName.get(baseName);
+    if (parent && parent.name !== name) return parent;
+  }
+
+  const cleaned = name
+    .replace(/_AZUR_|_Azur_/, '_')
+    .replace(/_BA_/, '_')
+    .replace(/_ARP_/, '_');
+  const cleanedParent = shipByName.get(cleaned);
+  if (cleanedParent && cleanedParent.name !== name) return cleanedParent;
+
+  const coreName = name.replace(/^P[A-Z]{3}\d{3}_/, '')
+    .replace(/^(?:AZUR_|Azur_|BA_|ARP_)/, '')
+    .replace(/^(?:Colorful_|CLR_|MC_|Pirate_|STPatric_|250TH_|Gold_|East_)/, '')
+    .replace(/_(?:TE|VL)$/, '');
+  return ships.find(x =>
+    x.name !== name &&
+    x.name.includes(coreName) &&
+    !x.name.includes('_Black_') &&
+    !x.name.includes('AZUR') &&
+    !x.name.includes('BA_') &&
+    !x.name.includes('_ARP_')
+  ) || null;
+}
 
 const curatedMap = {};
 
@@ -339,9 +447,11 @@ for (const s of ships) {
   let obtainMethodText = 'Testing / Unreleased';
   let availabilityNote = null;
   let rarity = null;
+  const isProgressionShip = group === 'upgradeable' || group === 'start';
+  const isDemoShip = group === 'demoWithoutStats' || group === 'demoWithoutStatsPrem';
 
   // 1. Check Tech Tree
-  if (group === 'upgradeable' || group === 'start') {
+  if (isProgressionShip) {
     category = 'Tech Tree';
     status = 'available_tech_tree';
     primaryCurrency = 'credits';
@@ -349,12 +459,29 @@ for (const s of ships) {
     obtainMethodText = `Tech Tree Research (${(costXP || 0).toLocaleString()} XP, ${(costCR || 0).toLocaleString()} Credits)`;
   }
   // 2. Check Superships
-  else if (group === 'superShip' || level === 11) {
+  else if (group === 'superShip' || (level === 11 && !isDemoShip)) {
     category = 'Tech Tree';
     status = 'available_tech_tree';
     primaryCurrency = 'credits';
     price = costCR || 45000000;
     obtainMethodText = `Supership Tech Tree Purchase (${(price).toLocaleString()} Credits)`;
+  }
+
+  // Released premium/special groups are not test hulls just because they are
+  // absent from the current Armory snapshot. Keep them discoverable with a
+  // conservative historical Doubloon baseline until a live offer supersedes it.
+  if (!isProgressionShip && ['special', 'premium', 'ultimate'].includes(group)) {
+    const baselinePrice = DOUBLOON_BASE_PRICE_BY_TIER[level] || null;
+    category = 'Doubloon';
+    status = 'available_armory';
+    primaryCurrency = 'gold';
+    price = baselinePrice;
+    basePrice = baselinePrice;
+    couponEligible = baselinePrice != null;
+    couponPrice = baselinePrice != null ? Math.round(baselinePrice * 0.75) : null;
+    obtainMethodText = baselinePrice != null
+      ? `Premium Ship (baseline ${baselinePrice.toLocaleString()} Doubloons)`
+      : 'Premium Ship (price unavailable)';
   }
 
   // 3. Check Removed Ships
@@ -382,62 +509,71 @@ for (const s of ships) {
     availabilityNote = dockyardMatch.note;
   }
 
-  // 5. Check Black Friday Clones
-  if (name.includes('_Black_')) {
+  // 5. Check Black Friday Clones. Progression ships are never clones, even
+  // when their historical identifier happens to contain a marker such as
+  // "_Black_" (Black Swan is the notable example).
+  if (!isProgressionShip && name.includes('_Black_') && name !== 'PBSC101_Black_Swan') {
     category = 'Black Friday';
     status = 'collaborative_limited';
     isClone = true;
     primaryCurrency = 'gold';
+    price = null;
+    basePrice = null;
+    couponEligible = false;
+    couponPrice = null;
     obtainMethodText = 'Black Friday Event (Annual Armory / Crates)';
-    
-    // Find parent ship
-    let parentShip = null;
-    if (CLONE_PARENT_OVERRIDES[name]) {
-      parentShip = shipByName.get(CLONE_PARENT_OVERRIDES[name]);
-    }
-    if (!parentShip) {
-      const baseName = name.replace(/_Black_/, '_');
-      parentShip = shipByName.get(baseName);
-    }
-    if (!parentShip) {
-      const coreName = name.replace(/^P[A-Z]{3}\d{3}_Black_/, '');
-      parentShip = ships.find(x => x.name !== name && x.name.includes(coreName) && !x.name.includes('_Black_'));
-    }
+    const parentShip = findCloneParent(name);
     if (parentShip) {
       cloneOfShipId = parentShip.id;
     }
   }
 
   // 6. Check Collaboration Clones (Azur Lane, ARP, Warhammer, Blue Archive)
-  const isCollab = name.includes('AZUR') || name.includes('Azur') || 
+  const isCollab = !isProgressionShip && (name.includes('AZUR') || name.includes('Azur') ||
                   name.includes('ARP_') || name.includes('Arpeggio') ||
                   name.includes('Warhammer') || name.includes('Ignis') || name.includes('Ragnarok') ||
                   name.includes('BA_') || name.includes('Haruna') || name.includes('Kirishima') ||
-                  name.includes('Kongou') || name.includes('Myoko') || name.includes('Haguro') ||
-                  name.includes('Nachi') || name.includes('Ashigara');
+                  name.includes('Kongou') || name.includes('Haguro') ||
+                  name.includes('Nachi') || name.includes('Ashigara'));
 
-  if (isCollab && !name.includes('_Black_')) {
+  const isKnownVariant = !isProgressionShip && (
+    Object.prototype.hasOwnProperty.call(CLONE_PARENT_OVERRIDES, name) &&
+    !isCollab &&
+    !name.includes('_Black_')
+  );
+
+  if ((isCollab || isKnownVariant) && !name.includes('_Black_')) {
     category = 'Collaboration';
     status = 'collaborative_limited';
     isClone = true;
     primaryCurrency = 'gold';
+    price = null;
+    basePrice = null;
+    couponEligible = false;
+    couponPrice = null;
     obtainMethodText = 'Collaboration Event (Limited Time)';
 
-    let parentShip = null;
-    if (CLONE_PARENT_OVERRIDES[name]) {
-      parentShip = shipByName.get(CLONE_PARENT_OVERRIDES[name]);
+    const parentShip = findCloneParent(name);
+    if (parentShip) {
+      cloneOfShipId = parentShip.id;
     }
-    if (!parentShip) {
-      const cleaned = name
-        .replace(/_AZUR_|_Azur_/, '_')
-        .replace(/_BA_/, '_')
-        .replace(/_ARP_/, '_');
-      parentShip = shipByName.get(cleaned);
-    }
-    if (!parentShip) {
-      const coreName = name.replace(/^P[A-Z]{3}\d{3}_(AZUR_|Azur_|BA_|ARP_)?/, '');
-      parentShip = ships.find(x => x.name !== name && x.name.includes(coreName) && !x.name.includes('AZUR') && !x.name.includes('BA_'));
-    }
+  }
+
+  // Evaluation-only variants still need clone semantics so they can be
+  // hidden together with other replicas, but should remain visibly marked as
+  // testing rather than priced as a released premium.
+  const isEvaluationVariant = !isProgressionShip && (/_(?:TE|VL)$/.test(name) || name === 'PASB708_Alabama');
+  if (isEvaluationVariant) {
+    category = 'Testing';
+    status = 'in_testing';
+    primaryCurrency = 'none';
+    price = null;
+    basePrice = null;
+    couponEligible = false;
+    couponPrice = null;
+    isClone = true;
+    obtainMethodText = 'Test / Evaluation Variant';
+    const parentShip = findCloneParent(name);
     if (parentShip) {
       cloneOfShipId = parentShip.id;
     }

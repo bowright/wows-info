@@ -46,6 +46,9 @@ async function runVerification() {
     }
   }
   assert(validFieldCount === 993, `All 993 ships have valid typed fields (ID, name, tier 1-11, valid class, HP > 0)`);
+  const displayNames = new Set(catalog.map((ship) => ship.dispName));
+  assert(displayNames.size === catalog.length, 'Catalog display names are unique after test-hull disambiguation');
+  assert(catalog.some((ship) => ship.dispName === 'Vrijheid (Test)'), 'Duplicate Vrijheid test hull is explicitly labeled');
 
   // --- Suite 2: Top Module Resolution ---
   console.log('\nSuite 2: Top Module Resolution');
@@ -74,8 +77,8 @@ async function runVerification() {
   assert(fs.existsSync(armoryMasterPath), 'armory_master.json exists in public/data/');
 
   const armoryMaster = JSON.parse(fs.readFileSync(armoryMasterPath, 'utf8'));
-  assert(armoryMaster.armoryOffersCount === 228, `Exactly 228 active armory ship bundle offers matched (found ${armoryMaster.armoryOffersCount})`);
-  assert(armoryMaster.armoryBundlesCount === 224, `224 ship bundles containing ships identified (found ${armoryMaster.armoryBundlesCount})`);
+  assert(armoryMaster.armoryOffersCount === 226, `Exactly 226 active armory ship bundle offers matched (found ${armoryMaster.armoryOffersCount})`);
+  assert(armoryMaster.armoryBundlesCount === 222, `222 ship bundles containing ships identified (found ${armoryMaster.armoryBundlesCount})`);
 
   // Zero false positives
   const nonShipTitles = ['Quán Róng', 'Steel Camouflage', 'Dà Róng', 'Camo'];
@@ -95,7 +98,12 @@ async function runVerification() {
       unmappedArmoryShips++;
     }
   }
-  assert(unmappedArmoryShips === 0, `All 228 Armory ship offers map to valid ships in catalog.json`);
+  assert(unmappedArmoryShips === 0, `All 226 Armory ship offers map to valid ships in catalog.json`);
+
+  const zeroPriceEarlyAccess = armoryMaster.offers.filter((offer) =>
+    offer.price <= 0 && ['Serrano', 'Almirante Villar'].includes(offer.title)
+  );
+  assert(zeroPriceEarlyAccess.length === 0, 'Zero-price early-access mission steps are excluded from Armory offers');
 
   // Coupon calculations
   const coalOffer = armoryMaster.offers.find(o => o.currency === 'coal');
@@ -134,6 +142,13 @@ async function runVerification() {
 
   const arpYamato = catalog.find(s => s.name === 'PJSB700_ARP_Yamato');
   assert(arpYamato?.acquisition?.isClone === true, `ARP Yamato marked as isClone === true`);
+
+  const blackSwan = catalog.find(s => s.name === 'PBSC101_Black_Swan');
+  assert(blackSwan?.acquisition?.category === 'Tech Tree' && blackSwan?.acquisition?.isClone === false, 'Black Swan remains a Tech Tree ship, not a Black Friday clone');
+  const myoko = catalog.find(s => s.name === 'PJSC008_Myoko_1945');
+  assert(myoko?.acquisition?.category === 'Tech Tree' && myoko?.acquisition?.cloneOfShipId == null, 'Myōkō remains a Tech Tree parent with no self-clone reference');
+  const z57 = catalog.find(s => s.name === 'PGSD111_Z_57');
+  assert(z57?.acquisition?.category === 'Testing', 'Z-57 demo hull is not classified as a Supership Tech Tree ship');
 
   // --- Suite 5: Krupp Ballistics & Overmatch Precision ---
   console.log('\nSuite 5: Krupp Ballistics & Overmatch Precision');

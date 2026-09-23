@@ -29,7 +29,7 @@ export type AvailabilityStatus =
 export interface ShipAcquisitionData {
   category: AcquisitionCategory;
   status: AvailabilityStatus;
-  primaryCurrency: 'coal' | 'steel' | 'gold' | 'paragon_xp' | 'credits' | 'community' | 'eventum' | 'free_xp' | 'none';
+  primaryCurrency: 'coal' | 'steel' | 'gold' | 'paragon_xp' | 'credits' | 'community' | 'eventum' | `eventum_${number}` | 'free_xp' | 'none';
   price: number | null;
   basePrice?: number | null;
   couponEligible: boolean;
@@ -44,6 +44,87 @@ export interface ShipAcquisitionData {
   rarity?: string | null;
   bundleId?: string | null;
   bundleExpiry?: string | null;
+}
+
+export interface ShipArtilleryStats {
+  caliberMm: number;
+  totalBarrels: number;
+  reload: number;
+  traverse180?: number;
+  rangeKm: number;
+  sigma: number;
+  horizontalDispersion?: number;
+  verticalDispersion?: number;
+  heDpm: number;
+  apDpm: number;
+  sapDpm: number;
+  heAlpha?: number | null;
+  apAlpha?: number | null;
+  sapAlpha?: number | null;
+  fireChance: number;
+  overmatchMm: number;
+  stockRangeKm?: number | null;
+  stock?: Omit<ShipArtilleryStats, 'stockRangeKm' | 'stock'> | null;
+}
+
+export interface ShipTorpedoStats {
+  totalTubes: number;
+  rangeKm: number;
+  speed: number;
+  damage: number;
+  reload: number;
+  detectabilityKm?: number;
+  stock?: ShipTorpedoStats | null;
+}
+
+export interface ShipSecondaryStats {
+  rangeKm: number | null;
+  caliberMm: number;
+  totalBarrels: number;
+  reload: number | null;
+  heDpm: number;
+  apDpm: number;
+  sapDpm: number;
+  fireChance: number | null;
+  penetrationMm: number | null;
+}
+
+export interface AircraftLoadoutStats {
+  planes: Array<{
+    name: string;
+    maxHealth: number;
+    squadronSize: number;
+    attackerSize: number;
+    attackCount: number;
+    projectilesPerAttack: number;
+    hangarSize: number;
+    restorationTimeSeconds: number;
+    speed: number;
+    payload: {
+      name: string;
+      type: string;
+      alphaDamage: number;
+      fireChance: number | null;
+    } | null;
+  }>;
+}
+
+export interface ShipAircraftStats {
+  attackAircraft: AircraftLoadoutStats | null;
+  torpedoBombers: AircraftLoadoutStats | null;
+  diveBombers: AircraftLoadoutStats | null;
+  skipBombers: AircraftLoadoutStats | null;
+}
+
+export interface ShipSubmarineStats {
+  diveCapacity: number | null;
+  diveCapacityRechargeRate: number | null;
+  submergedSpeed: number | null;
+  periscopeDetectabilityKm: number | null;
+  pingRangeKm: number | null;
+  pingReloadTime: number | null;
+  pingSpeed: number | null;
+  pingDurationsSeconds: number[];
 }
 
 export interface CompactShipCatalogItem {
@@ -61,11 +142,17 @@ export interface CompactShipCatalogItem {
   health: number;
   stockHealth: number;
   speed: number;
+  stockSpeed: number;
   rudderTime: number;
+  stockRudderTime: number;
   turningRadius: number;
+  stockTurningRadius: number;
   concealmentSurface: number | null;
   concealmentAir: number | null;
   concealmentSmoke: number | null;
+  stockConcealmentSurface: number | null;
+  stockConcealmentAir: number | null;
+  stockConcealmentSmoke: number | null;
   smokePenalty: number | null;
 
   // Promoted scalar columns for 60fps virtualized matrix
@@ -93,32 +180,11 @@ export interface CompactShipCatalogItem {
   floodingDamage: number | null;
   noOfFloodings: number | null;
 
-  artillery: {
-    caliberMm: number;
-    totalBarrels: number;
-    reload: number;
-    traverse180?: number;
-    rangeKm: number;
-    sigma: number;
-    horizontalDispersion?: number;
-    verticalDispersion?: number;
-    heDpm: number;
-    apDpm: number;
-    sapDpm: number;
-    heAlpha?: number;
-    apAlpha?: number;
-    sapAlpha?: number;
-    fireChance: number;
-    overmatchMm: number;
-  } | null;
-  torpedoes: {
-    totalTubes: number;
-    rangeKm: number;
-    speed: number;
-    damage: number;
-    reload: number;
-    detectabilityKm?: number;
-  } | null;
+  artillery: ShipArtilleryStats | null;
+  torpedoes: ShipTorpedoStats | null;
+  secondary: ShipSecondaryStats | null;
+  aircraft: ShipAircraftStats | null;
+  submarine: ShipSubmarineStats | null;
   aa?: {
     maxRange: number;
     totalDps: number;
@@ -148,7 +214,7 @@ export interface CompactShipCatalogItem {
   };
 }
 
-export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'torpedoes' | 'aa' | 'asw' | 'all';
+export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'secondary' | 'torpedoes' | 'aa' | 'asw' | 'all';
 
 
 export interface BallisticsPoint {
@@ -458,4 +524,3 @@ export interface PRTierInfo {
   bgClass: string;
   borderClass: string;
 }
-

@@ -68,6 +68,7 @@ const PRESETS: { id: ColumnPreset; label: string; icon: React.ComponentType<{ cl
   { id: 'general', label: 'General', icon: SlidersHorizontal },
   { id: 'survivability', label: 'Survivability', icon: Shield },
   { id: 'artillery', label: 'Artillery', icon: Crosshair },
+  { id: 'secondary', label: 'Secondary', icon: Radio },
   { id: 'torpedoes', label: 'Torpedoes', icon: Flame },
   { id: 'aa', label: 'AA Defense', icon: Radio },
   { id: 'asw', label: 'ASW', icon: Layers },
