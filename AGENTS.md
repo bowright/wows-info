@@ -61,7 +61,8 @@ The canonical production host for `wows-info` is the **`azuremsia` server** (`10
 │   ├── verify_filter_controls.mjs  # All/None filter controls & tier coverage tests
 │   ├── verify_shiptool_columns.mjs # Shiptool column headers & survivability tests
 │   ├── extract_consumable_icons.mjs # Consumables icon asset extractor
-│   └── verify_consumables.mjs      # Consumables columns & shiptool p=CON audit
+│   ├── verify_consumables.mjs      # Consumables columns & shiptool p=CON audit
+│   └── verify_all_shiptool_presets.mjs # 20 presets parity verification suite
 ├── server/
 │   └── sync_service.mjs            # Local sync API and background polling service
 ├── public/
@@ -117,8 +118,9 @@ All implementation across phases must adhere to the **Phased Implementation & In
 - `npm run dev` — Launch Vite local development server.
 - `npm run build` — Build production bundle (`tsc && vite build`).
 - `npm run sync` — Run data ingestion and update `public/data/` from live sources.
-- `npm test` — Run complete automated verification test suite (1,426/1,426 passing tests across 45 suites).
+- `npm test` — Run complete automated verification test suite (1,743/1,743 passing tests across 46 suites).
 - `npm run test:phase1` .. `npm run test:phase6` — Run individual phase verification suites.
 - `npm run test:filters` — Run filter controls & tier coverage verification suite.
 - `npm run test:shiptool` — Run shiptool column headers & survivability matrix verification suite.
 - `npm run test:consumables` — Run consumables columns & shiptool p=CON verification suite.
+- `npm run test:presets` — Run all 20 shiptool parameter presets & URL sync verification suite.

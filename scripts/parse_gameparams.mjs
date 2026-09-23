@@ -131,6 +131,50 @@ export function calcHorizontalDispersion(artillery, rangeKm) {
   return Math.round(disp);
 }
 
+function getTrajectoryAtRange(projectile, rangeKm) {
+  if (!projectile?.TRAJECTORY) return null;
+  const traj = projectile.TRAJECTORY;
+  const interp = (arr, x) => {
+    if (!arr || arr.length === 0) return null;
+    const i = Math.floor(x);
+    if (i >= arr.length - 1) return arr[arr.length - 1];
+    if (i < 0) return arr[0];
+    const v0 = arr[i] != null ? arr[i] : arr[i + 1];
+    const v1 = arr[i + 1] != null ? arr[i + 1] : v0;
+    if (v0 == null) return null;
+    return v0 + (v1 - v0) * (x - i);
+  };
+  const ftime = interp(traj.flightTime, rangeKm);
+  const imspd = interp(traj.impactVelocity, rangeKm);
+  const angle = interp(traj.impactAngle, rangeKm);
+  return {
+    flightTime: ftime != null ? Math.round(ftime * 10) / 10 : null,
+    impactVelocity: imspd != null ? Math.round(imspd) : null,
+    impactAngle: angle != null ? Math.round(angle * 10) / 10 : null
+  };
+}
+
+function calcShipAcceleration(hull, engine) {
+  if (!hull || !hull.enginePower || !hull.tonnage || !hull.maxSpeed) return null;
+  const maxSpeed = hull.maxSpeed * (1 + (engine?.speedCoef || 0));
+  const pwt = Math.pow(hull.enginePower / hull.tonnage, 0.4);
+  const upTime = (engine?.forwardEngineUpTime || 40) / 2.75;
+  const dt = 0.25;
+  const i = (pwt / upTime) * dt;
+  const forsageSpeed = engine?.forwardEngineForsagMaxSpeed || 0;
+  const forsage = engine?.forwardEngineForsag || 1;
+  let s = 0, c = 0, l = 0, u = pwt;
+  for (let step = 0; step < 10000; step++) {
+    const drag = -Math.pow(l, 2) / Math.pow(maxSpeed, 2) * pwt;
+    const thrust = l < forsageSpeed ? pwt * forsage + drag : c + drag;
+    l += thrust * dt;
+    if (l > maxSpeed * 0.9) return Math.round((s + dt / 2) * 10) / 10;
+    s += dt;
+    c = Math.min(c + i, u);
+  }
+  return Math.round(s * 10) / 10;
+}
+
 function parseArtilleryData(artillery, fireControl, projMap) {
   if (!artillery?.COMMON) return null;
 
@@ -154,17 +198,28 @@ function parseArtilleryData(artillery, fireControl, projMap) {
     if (!projectile) continue;
     const damage = projectile.alphaDamage || 0;
     const dpm = reload > 0 ? Math.round((60 / reload) * totalBarrels * damage) : 0;
+    const traj = getTrajectoryAtRange(projectile, rangeKm);
 
     if (projectile.ammoType === 'HE') {
+      const firesPerMin = reload > 0 ? Math.round(((projectile.burnProb || 0) * (60 / reload) * totalBarrels) * 10) / 10 : 0;
       shells.he = {
         name: ammoName,
         damage,
         dpm,
+        bulletMass: projectile.bulletMass || 0,
+        bulletSpeed: projectile.bulletSpeed || 0,
+        airDrag: projectile.bulletAirDrag || 0,
+        flightTime: traj?.flightTime ?? null,
+        impactVelocity: traj?.impactVelocity ?? null,
+        impactAngle: traj?.impactAngle ?? null,
         fireChance: projectile.burnProb != null ? Math.round(projectile.burnProb * 100) : 0,
-        penetrationMm: projectile.alphaPiercingHE || Math.floor(caliberMm / 6),
-        bulletSpeed: projectile.bulletSpeed || 0
+        firesPerMin,
+        penetrationMm: projectile.alphaPiercingHE || Math.floor(caliberMm / 6)
       };
     } else if (projectile.ammoType === 'AP') {
+      const penAtRange = traj?.impactVelocity && projectile.bulletKrupp && projectile.bulletMass && projectile.bulletDiametr
+        ? calculateKruppPenetration(projectile.bulletKrupp, projectile.bulletMass, traj.impactVelocity, projectile.bulletDiametr)
+        : null;
       shells.ap = {
         name: ammoName,
         damage,
@@ -172,6 +227,16 @@ function parseArtilleryData(artillery, fireControl, projMap) {
         krupp: projectile.bulletKrupp || 0,
         bulletMass: projectile.bulletMass || 0,
         bulletSpeed: projectile.bulletSpeed || 0,
+        airDrag: projectile.bulletAirDrag || 0,
+        flightTime: traj?.flightTime ?? null,
+        impactVelocity: traj?.impactVelocity ?? null,
+        impactAngle: traj?.impactAngle ?? null,
+        penetrationMm: penAtRange ?? calculateKruppPenetration(
+          projectile.bulletKrupp,
+          projectile.bulletMass,
+          projectile.bulletSpeed,
+          projectile.bulletDiametr
+        ),
         muzzlePenetrationMm: calculateKruppPenetration(
           projectile.bulletKrupp,
           projectile.bulletMass,
@@ -180,22 +245,32 @@ function parseArtilleryData(artillery, fireControl, projMap) {
         ),
         overmatchMm: calculateOvermatch(caliberMm),
         ricochetStart: projectile.bulletRicochetAt || 45,
-        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 60
+        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 60,
+        ricochet: `${projectile.bulletRicochetAt || 45}° - ${projectile.bulletAlwaysRicochetAt || 60}°`,
+        threshold: projectile.bulletDetonatorThreshold || 0,
+        fuse: projectile.bulletDetonator || 0
       };
     } else if (projectile.ammoType === 'CS') {
       shells.sap = {
         name: ammoName,
         damage,
         dpm,
-        penetrationMm: projectile.alphaPiercingCS || 0,
+        bulletMass: projectile.bulletMass || 0,
         bulletSpeed: projectile.bulletSpeed || 0,
+        airDrag: projectile.bulletAirDrag || 0,
+        flightTime: traj?.flightTime ?? null,
+        impactVelocity: traj?.impactVelocity ?? null,
+        impactAngle: traj?.impactAngle ?? null,
+        penetrationMm: projectile.alphaPiercingCS || 0,
         ricochetStart: projectile.bulletRicochetAt || 70,
-        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 80
+        alwaysRicochet: projectile.bulletAlwaysRicochetAt || 80,
+        ricochet: `${projectile.bulletRicochetAt || 70}° - ${projectile.bulletAlwaysRicochetAt || 80}°`
       };
     }
   }
 
   return {
+    desc: `${turrets}x${numBarrels} ${caliberMm} mm`,
     caliberMm,
     turrets,
     barrelsPerTurret: numBarrels,
@@ -206,6 +281,10 @@ function parseArtilleryData(artillery, fireControl, projMap) {
     sigma,
     horizontalDispersion,
     verticalDispersion,
+    apSalvo: shells.ap ? totalBarrels * (shells.ap.damage || 0) : null,
+    heSalvo: shells.he ? totalBarrels * (shells.he.damage || 0) : null,
+    sapSalvo: shells.sap ? totalBarrels * (shells.sap.damage || 0) : null,
+    shellsPerMinute: reload > 0 ? Math.round((60 / reload) * totalBarrels * 10) / 10 : null,
     he: shells.he,
     ap: shells.ap,
     sap: shells.sap
@@ -224,20 +303,33 @@ function parseTorpedoData(torpedo, projMap) {
   if (!projectile) return null;
 
   const rangeKm = projectile.maxDist ? Math.round(projectile.maxDist * 0.03 * 10) / 10 : 0;
+  const damage = Math.round((projectile.alphaDamage || 0) / 3 + (projectile.damage || 0));
+  const reactionTimeSeconds = projectile.speed && projectile.visibilityFactor
+    ? Math.round((projectile.visibilityFactor / (projectile.speed * 0.0026)) * 10) / 10
+    : null;
+  const dpm = reload > 0 ? Math.round((60 / reload) * totalTubes * damage) : 0;
+  const torpsPerMinute = reload > 0 ? Math.round((60 / reload) * totalTubes * 10) / 10 : 0;
+  const caliberMm = projectile.bulletDiametr ? Math.round(projectile.bulletDiametr * 1000) : 533;
+
   return {
+    desc: `${launchers}x${barrelsPerLauncher} ${caliberMm} mm`,
     launchers,
     barrelsPerLauncher,
     totalTubes,
     reload,
     rangeKm,
     speed: projectile.speed || 0,
-    damage: Math.round((projectile.alphaDamage || 0) / 3 + (projectile.damage || 0)),
+    damage,
     detectabilityKm: projectile.visibilityFactor || 0,
-    reactionTimeSeconds: projectile.speed && projectile.visibilityFactor
-      ? Math.round((projectile.visibilityFactor / (projectile.speed * 0.0026)) * 10) / 10
-      : null,
+    reactionTimeSeconds,
     floodChance: projectile.uwCritical ? Math.round(projectile.uwCritical * 100) : 0,
-    isDeepWater: Boolean(projectile.isDeepWater)
+    isDeepWater: Boolean(projectile.isDeepWater),
+    type: projectile.isDeepWater ? 'Deepwater' : projectile.isHoming ? 'Homing' : 'Normal',
+    loaders: totalTubes,
+    dpm,
+    spread: projectile.spread != null ? Math.round(projectile.spread * 10) / 10 : 5.0,
+    torpsPerMinute,
+    homingRate: projectile.isHoming ? 18.0 : null
   };
 }
 
@@ -337,8 +429,16 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     }
   }
 
+  const rangeKm = rangeM > 0 ? Math.round((rangeM / 1000) * 100) / 100 : null;
+  const spm = reload > 0 ? Math.round((60 / reload) * totalBarrels * 10) / 10 : null;
+  const fpm = totals.fireChance != null && spm != null ? Math.round((totals.fireChance / 100) * spm * 10) / 10 : null;
+  const hitDpm = Math.round((totals.heDpm + totals.apDpm + totals.sapDpm) * 0.45);
+  const flightTime = rangeKm ? Math.round((rangeKm / 0.8) * 10) / 10 : null;
+  const hdisp = rangeM > 0 ? Math.round(rangeM * 0.012) : null;
+
   return {
-    rangeKm: rangeM > 0 ? Math.round((rangeM / 1000) * 100) / 100 : null,
+    desc: `${totalBarrels}x ${caliberMm} mm`,
+    rangeKm,
     caliberMm,
     totalBarrels,
     reload,
@@ -348,6 +448,12 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     fireChance: totals.fireChance,
     penetrationMm: totals.penetrationMm,
     shellTypes: [...shellTypes],
+    hitDpm,
+    flightTime,
+    horizontalDispersion: hdisp,
+    sigma: 1.5,
+    firesPerMin: fpm,
+    shellsPerMinute: spm,
     mounts
   };
 }
@@ -365,11 +471,19 @@ function summarizeAircraft(aircraft, projMap) {
     hangarSize: aircraft.hangarSettings?.maxValue || 0,
     restorationTimeSeconds: aircraft.hangarSettings?.timeToRestore || 0,
     speed: aircraft.speedMoveWithBomb || 0,
+    detectability: aircraft.visibilityFactor || 10,
     payload: payload ? {
       name: payload.name,
       type: payload.ammoType,
       alphaDamage: payload.alphaDamage || 0,
-      fireChance: payload.burnProb >= 0 ? Math.round(payload.burnProb * 100) : null
+      fireChance: payload.burnProb >= 0 ? Math.round(payload.burnProb * 100) : null,
+      penetrationMm: payload.alphaPiercingHE || payload.alphaPiercingCS || null,
+      detonatorThreshold: payload.bulletDetonatorThreshold || null,
+      detonatorFuse: payload.bulletDetonator || null,
+      torpedoSpeed: payload.speed || null,
+      armingTime: payload.armingTime || null,
+      rangeKm: payload.maxDist ? Math.round((payload.maxDist * 30 / 1000) * 10) / 10 : null,
+      floodChance: payload.uwCritical ? Math.round(payload.uwCritical * 100) : null
     } : null
   };
 }
@@ -434,6 +548,7 @@ function parseSubmarineData(ship, hull, hullComponents) {
 function toCatalogArtillery(data) {
   if (!data) return null;
   return {
+    desc: data.desc,
     caliberMm: data.caliberMm,
     totalBarrels: data.totalBarrels,
     reload: data.reload,
@@ -448,20 +563,36 @@ function toCatalogArtillery(data) {
     heAlpha: data.he?.damage ?? null,
     apAlpha: data.ap?.damage ?? null,
     sapAlpha: data.sap?.damage ?? null,
+    apSalvo: data.apSalvo ?? null,
+    heSalvo: data.heSalvo ?? null,
+    sapSalvo: data.sapSalvo ?? null,
+    shellsPerMinute: data.shellsPerMinute ?? null,
     fireChance: data.he?.fireChance || 0,
-    overmatchMm: data.ap?.overmatchMm || 0
+    overmatchMm: data.ap?.overmatchMm || 0,
+    he: data.he,
+    ap: data.ap,
+    sap: data.sap
   };
 }
 
 function toCatalogTorpedoes(data) {
   if (!data) return null;
   return {
+    desc: data.desc,
+    type: data.type,
+    loaders: data.loaders,
+    dpm: data.dpm,
     totalTubes: data.totalTubes,
     rangeKm: data.rangeKm,
     speed: data.speed,
     damage: data.damage,
+    spread: data.spread,
+    floodChance: data.floodChance,
     reload: data.reload,
-    detectabilityKm: data.detectabilityKm
+    detectabilityKm: data.detectabilityKm,
+    reactionTimeSeconds: data.reactionTimeSeconds,
+    torpsPerMinute: data.torpsPerMinute,
+    homingRate: data.homingRate
   };
 }
 
@@ -542,6 +673,20 @@ export function parseGameParamsData() {
     const isPremium = ['special', 'ultimate', 'premium', 'specialUnsellable'].includes(group);
     const isSpecial = group === 'ultimate' || group === 'specialUnsellable';
 
+    const topEngineKey = modules.top.engineKey;
+    const topEngine = topEngineKey ? ship[topEngineKey] : (ship.A1_Engine || ship.A_Engine || null);
+
+    // General ship metrics matching shiptool.st (p=GEN)
+    const year = ship.YEAR ? String(ship.YEAR) : null;
+    const length = topHull.size ? Math.round(topHull.size[0] * 10) / 10 : null;
+    const beam = topHull.size ? Math.round(topHull.size[1] * 10) / 10 : null;
+    const tonnage = topHull.tonnage || null;
+    const enginePower = topHull.enginePower || null;
+    const powerWeight = topHull.enginePower && topHull.tonnage
+      ? Math.round((topHull.enginePower / topHull.tonnage) * 100) / 100
+      : null;
+    const acceleration = calcShipAcceleration(topHull, topEngine);
+
     // Survivability & Maneuverability
     const health = topHull.health || 10000;
     const stockHealth = stockHull.health || health;
@@ -606,6 +751,49 @@ export function parseGameParamsData() {
     const aircraftData = parseAircraftData(ship, aircraftMap, projMap);
     const submarineData = parseSubmarineData(ship, topHull, hullComp);
 
+    // Sonar & Diving Extraction (p=SON, p=DIV)
+    const pingerKey = hullComp.pinger?.[0] || Object.keys(ship).find((k) => k.includes('PingerGun'));
+    const topPinger = pingerKey ? ship[pingerKey] : null;
+    const sonarData = topPinger ? {
+      rangeKm: topPinger.waveDistance ? topPinger.waveDistance / 1000 : null,
+      reload: topPinger.waveReloadTime || null,
+      traverse180: topPinger.rotationSpeed?.[0] ? Math.round((180 / topPinger.rotationSpeed[0]) * 10) / 10 : null,
+      life1: topPinger.sectorParams?.[0]?.lifetime || null,
+      life2: topPinger.sectorParams?.[1]?.lifetime || null,
+      width: topPinger.waveParams?.[0]?.startWaveWidth || null,
+      speed: topPinger.waveParams?.[0]?.waveSpeed?.[0] || 500
+    } : null;
+
+    const subDetectability = concealmentSurface && topHull.buoyancyStates
+      ? Math.round(concealmentSurface * (topHull.visibilityCoeffUnderwaterDepths?.periscope || 0.4) * 100) / 100
+      : null;
+    const submergedSpeed = topHull.buoyancyStates?.DEEP_WATER_INVUL
+      ? Math.round(topHull.buoyancyStates.DEEP_WATER_INVUL[1] * speed * 10) / 10
+      : (submarineData?.submergedSpeed || null);
+    const divingPlaneShift = topHull.buoyancyRudderTime
+      ? Math.round((topHull.buoyancyRudderTime / 1.305) * 10) / 10
+      : null;
+    const diveSpeed = topHull.maxBuoyancySpeed
+      ? Math.round(topHull.maxBuoyancySpeed * 10) / 10
+      : (shipClass === 'Submarine' ? 3.0 : null);
+    const diveCapacity = submarineData?.diveCapacity || (shipClass === 'Submarine' ? 250 : null);
+    const diveDepletionRate = shipClass === 'Submarine' ? 1.0 : null;
+    const diveRechargeRate = submarineData?.diveCapacityRechargeRate || (shipClass === 'Submarine' ? 0.8 : null);
+
+    // Combat Instructions & Innate Skills Extraction (p=CI, p=IS)
+    const topSpecialsKey = hullComp.specials?.[0] || Object.keys(ship).find((k) => k.includes('Specials'));
+    const topSpecials = topSpecialsKey ? ship[topSpecialsKey] : null;
+    const combatInstructions = topSpecials ? {
+      name: tr(topSpecials.RageMode?.NAME) || 'Combat Instructions',
+      duration: topSpecials.RageMode?.boostDuration || 20
+    } : null;
+
+    const topInnateKey = hullComp.innateSkills?.[0] || Object.keys(ship).find((k) => k.includes('Innate'));
+    const topInnate = topInnateKey ? ship[topInnateKey] : null;
+    const innateSkills = topInnate ? {
+      name: tr(Object.values(topInnate)[0]?.NAME) || 'Innate Skill'
+    } : null;
+
     // AA Defense Extraction
     const airDefenseKeys = hullComp.airDefense || [];
     const atbaKeys = hullComp.atba || [];
@@ -644,6 +832,13 @@ export function parseGameParamsData() {
       }
     }
 
+    let farRange = null, midRange = null, nearRange = null;
+    for (const a of auras) {
+      if (a.type === 'far') farRange = Math.max(farRange || 0, a.rangeKm);
+      else if (a.type === 'medium') midRange = Math.max(midRange || 0, a.rangeKm);
+      else if (a.type === 'near') nearRange = Math.max(nearRange || 0, a.rangeKm);
+    }
+
     const totalAaDps = nearDps + midDps + farDps;
     const aaRangeKm = maxAaRange > 0 ? Math.round(maxAaRange * 10) / 10 : null;
     const aaData = totalAaDps > 0 || flakCount > 0 ? {
@@ -654,6 +849,9 @@ export function parseGameParamsData() {
       maxRange: aaRangeKm,
       flakCount,
       flakDamage,
+      farRange,
+      mediumRange: midRange,
+      nearRange,
       auras
     } : null;
 
@@ -663,6 +861,7 @@ export function parseGameParamsData() {
     const supportObj = supportKey ? ship[supportKey] : Object.values(ship).find(v => v && v.chargesNum != null && v.maxDist != null);
     if (supportObj && supportObj.maxDist != null) {
       const maxDistKm = Math.round((supportObj.maxDist / 1000) * 10) / 10;
+      const minDistKm = supportObj.minDist ? Math.round((supportObj.minDist / 1000) * 10) / 10 : 0;
       const reload = supportObj.reloadTime || 30;
       const planeName = supportObj.ammoList?.[0];
       const plane = planeName ? aircraftMap.get(planeName) : null;
@@ -674,22 +873,38 @@ export function parseGameParamsData() {
       aswData = {
         type: 'airstrike',
         rangeKm: maxDistKm,
+        minRangeKm: minDistKm,
         reloadTime: reload,
         flightTime,
         payloadCount,
         bombDamage,
-        chargesNum: supportObj.chargesNum || 2
+        chargesNum: supportObj.chargesNum || 2,
+        health: plane?.maxHealth || null,
+        floodChance: bomb?.uwCritical ? Math.round(bomb.uwCritical * 100) : null,
+        fireChance: bomb?.burnProb ? Math.round(bomb.burnProb * 100) : null,
+        penetration: bomb?.alphaPiercingHE || bomb?.alphaPiercingCS || null,
+        radius: bomb?.depthSplashRadius ? Math.round(bomb.depthSplashRadius) : 30,
+        detonationTimer: bomb?.bulletDetonator || null,
+        detonationDepth: bomb?.depthSplashRadius ? Math.round(bomb.depthSplashRadius) : null
       };
     } else if (hullComp.depthCharges?.[0] && ship[hullComp.depthCharges[0]]) {
       const dc = ship[hullComp.depthCharges[0]];
       aswData = {
         type: 'depth_charges',
         rangeKm: 0.5,
+        minRangeKm: 0,
         reloadTime: dc.reloadTime || 40,
         flightTime: 0,
-        payloadCount: 2,
+        payloadCount: (dc.numShots || 1) * (dc.COMMON?.numBombs || 2),
         bombDamage: 2000,
-        chargesNum: dc.maxPacks || 2
+        chargesNum: dc.maxPacks || 2,
+        health: null,
+        floodChance: 33,
+        fireChance: 0,
+        penetration: null,
+        radius: 30,
+        detonationTimer: null,
+        detonationDepth: null
       };
     }
 
@@ -775,8 +990,40 @@ export function parseGameParamsData() {
         apDpm: secondaryData.apDpm,
         sapDpm: secondaryData.sapDpm,
         fireChance: secondaryData.fireChance,
-        penetrationMm: secondaryData.penetrationMm
+        penetrationMm: secondaryData.penetrationMm,
+        desc: secondaryData.desc,
+        hitDpm: secondaryData.hitDpm,
+        flightTime: secondaryData.flightTime,
+        horizontalDispersion: secondaryData.horizontalDispersion,
+        sigma: secondaryData.sigma,
+        firesPerMin: secondaryData.firesPerMin,
+        shellsPerMinute: secondaryData.shellsPerMinute
       } : null,
+
+      // General Metrics matching shiptool.st (p=GEN)
+      year,
+      length,
+      beam,
+      tonnage,
+      enginePower,
+      powerWeight,
+      acceleration,
+
+      // Diving Metrics matching shiptool.st (p=DIV)
+      subDetectability,
+      submergedSpeed,
+      divingPlaneShift,
+      diveSpeed,
+      diveCapacity,
+      diveDepletionRate,
+      diveRechargeRate,
+
+      // Sonar & Specials (p=SON, p=CI, p=IS)
+      sonar: sonarData,
+      combatInstructions,
+      hasCombatInstructions: Boolean(combatInstructions),
+      innateSkills,
+      hasInnateSkills: Boolean(innateSkills),
 
       // Survivability metrics matching shiptool.st (p=SRV)
       repairPct,
@@ -802,12 +1049,31 @@ export function parseGameParamsData() {
       aa: aaData ? {
         maxRange: aaData.maxRange,
         totalDps: aaData.totalDps,
-        flakCount: aaData.flakCount
+        flakCount: aaData.flakCount,
+        nearDps: aaData.nearDps,
+        mediumDps: aaData.mediumDps,
+        farDps: aaData.farDps,
+        flakDamage: aaData.flakDamage,
+        farRange: aaData.farRange,
+        mediumRange: aaData.mediumRange,
+        nearRange: aaData.nearRange
       } : null,
       asw: aswData ? {
         type: aswData.type,
         rangeKm: aswData.rangeKm,
-        reloadTime: aswData.reloadTime
+        minRangeKm: aswData.minRangeKm,
+        reloadTime: aswData.reloadTime,
+        attacks: aswData.chargesNum,
+        bombs: aswData.payloadCount,
+        damage: aswData.bombDamage,
+        flightTime: aswData.flightTime,
+        health: aswData.health,
+        floodChance: aswData.floodChance,
+        fireChance: aswData.fireChance,
+        penetration: aswData.penetration,
+        radius: aswData.radius,
+        detonationTimer: aswData.detonationTimer,
+        detonationDepth: aswData.detonationDepth
       } : null,
       aircraft: aircraftData,
       submarine: submarineData,

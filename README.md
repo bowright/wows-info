@@ -51,7 +51,9 @@ A high-performance local web application delivering feature parity with [shiptoo
 │   ├── verify_shiptool_stats.mjs   # ShipTool importer and snapshot verification
 │   ├── verify_phase6.mjs           # Automated Phase 6 verification test suite
 │   ├── verify_filter_controls.mjs  # Filter controls & tier range verification suite
-│   └── verify_shiptool_columns.mjs # Shiptool column headers & survivability test suite
+│   ├── verify_shiptool_columns.mjs # Shiptool column headers & survivability test suite
+│   ├── verify_consumables.mjs      # Consumables columns & shiptool p=CON audit
+│   └── verify_all_shiptool_presets.mjs # 20 presets parity verification suite
 ├── server/
 │   └── sync_service.mjs            # Background polling daemon & /api/sync endpoint
 ├── public/
@@ -228,6 +230,7 @@ The automated test suite (`npm test`) executes **1,399 total tests** with **100%
 * **Phase 6 Audit Status**: **PASS (Full Unconditional Approval)** (2026-09-23)
 * **Filter Controls & Full Tier Range**: **PASS (Verified)** (2026-09-23)
 * **Shiptool Column Names & Survivability Alignment**: **PASS (Verified)** (2026-09-23)
+* **Shiptool 20 Presets Parity & URL Sync**: **PASS (Verified)** (2026-09-24)
 * **Auditor**: Independent Reviewer
 * **Key Findings**:
   * Full PWA offline caching (`manifest.json`, `sw.js` with Stale-While-Revalidate for `/data/` and Cache-First for static assets).
@@ -237,9 +240,11 @@ The automated test suite (`npm test`) executes **1,399 total tests** with **100%
   * Dedicated Select All / None controls for Tier, Class, Nation, and Source across Parameters and Armory views.
   * Complete 11-tier coverage (Tiers I–XI) on Server Statistics view with All/None buttons.
   * Complete 10-parameter Survivability (`p=SRV`) matrix with authentic formulas (Repair %, Citadel repair %, Torpedo protection, Fire/Flood durations).
-  * 100% column header parity across all parameter presets with shiptool.st.
+  * 100% column header and arrangement parity across all 20 shiptool parameter presets (`GEN`, `SRV`, `DIV`, `MB`, `AP`, `HE`, `SAP`, `SEC`, `SON`, `TORP`, `AA`, `ASW`, `AS`, `ATT`, `TB`, `DB`, `SB`, `CON`, `CI`, `IS`) + `all`.
+  * Bidirectional URL query synchronization (`?p=CODE`) supporting both short codes and legacy long names.
+  * Pinned left columns (`compare`, `tier`, `class`, `nation`, `name`, `acquisition`) ensuring smooth horizontal exploration.
   * Executable one-command quick launch orchestrator (`start.sh` / `npm start`).
-  * Grand Total: **1,399 / 1,399 passing tests (100% pass rate)**; clean production build.
+  * Grand Total: **1,743 / 1,743 passing tests (100% pass rate)**; clean production build.
 
 ---
 

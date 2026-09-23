@@ -64,7 +64,31 @@ export interface ShipAcquisitionData {
   otherOffers?: AdditionalOffer[];
 }
 
+export interface ShellStats {
+  name: string;
+  damage: number;
+  dpm: number;
+  krupp?: number;
+  bulletMass?: number;
+  bulletSpeed?: number;
+  airDrag?: number;
+  flightTime?: number | null;
+  impactVelocity?: number | null;
+  impactAngle?: number | null;
+  penetrationMm?: number | null;
+  muzzlePenetrationMm?: number;
+  overmatchMm?: number;
+  ricochetStart?: number;
+  alwaysRicochet?: number;
+  ricochet?: string;
+  threshold?: number;
+  fuse?: number;
+  fireChance?: number;
+  firesPerMin?: number;
+}
+
 export interface ShipArtilleryStats {
+  desc?: string;
   caliberMm: number;
   totalBarrels: number;
   reload: number;
@@ -79,23 +103,40 @@ export interface ShipArtilleryStats {
   heAlpha?: number | null;
   apAlpha?: number | null;
   sapAlpha?: number | null;
+  apSalvo?: number | null;
+  heSalvo?: number | null;
+  sapSalvo?: number | null;
+  shellsPerMinute?: number | null;
   fireChance: number;
   overmatchMm: number;
   stockRangeKm?: number | null;
   stock?: Omit<ShipArtilleryStats, 'stockRangeKm' | 'stock'> | null;
+  he?: ShellStats | null;
+  ap?: ShellStats | null;
+  sap?: ShellStats | null;
 }
 
 export interface ShipTorpedoStats {
+  desc?: string;
+  type?: string;
+  loaders?: number;
+  dpm?: number;
   totalTubes: number;
   rangeKm: number;
   speed: number;
   damage: number;
+  spread?: number;
+  floodChance?: number;
   reload: number;
   detectabilityKm?: number;
+  reactionTimeSeconds?: number | null;
+  torpsPerMinute?: number;
+  homingRate?: number | null;
   stock?: ShipTorpedoStats | null;
 }
 
 export interface ShipSecondaryStats {
+  desc?: string;
   rangeKm: number | null;
   caliberMm: number;
   totalBarrels: number;
@@ -105,6 +146,22 @@ export interface ShipSecondaryStats {
   sapDpm: number;
   fireChance: number | null;
   penetrationMm: number | null;
+  hitDpm?: number | null;
+  flightTime?: number | null;
+  horizontalDispersion?: number | null;
+  sigma?: number | null;
+  firesPerMin?: number | null;
+  shellsPerMinute?: number | null;
+}
+
+export interface SubmarineSonarStats {
+  rangeKm: number | null;
+  reload: number | null;
+  traverse180: number | null;
+  life1: number | null;
+  life2: number | null;
+  width: number | null;
+  speed: number | null;
 }
 
 export interface AircraftLoadoutStats {
@@ -118,11 +175,19 @@ export interface AircraftLoadoutStats {
     hangarSize: number;
     restorationTimeSeconds: number;
     speed: number;
+    detectability?: number | null;
     payload: {
       name: string;
       type: string;
       alphaDamage: number;
       fireChance: number | null;
+      penetrationMm?: number | null;
+      detonatorThreshold?: number | null;
+      detonatorFuse?: number | null;
+      torpedoSpeed?: number | null;
+      armingTime?: number | null;
+      rangeKm?: number | null;
+      floodChance?: number | null;
     } | null;
   }>;
 }
@@ -207,11 +272,31 @@ export interface CompactShipCatalogItem {
     maxRange: number;
     totalDps: number;
     flakCount: number;
+    nearDps?: number | null;
+    mediumDps?: number | null;
+    farDps?: number | null;
+    flakDamage?: number | null;
+    farRange?: number | null;
+    mediumRange?: number | null;
+    nearRange?: number | null;
   } | null;
   asw?: {
     type: 'airstrike' | 'depth_charges';
     rangeKm: number;
     reloadTime: number;
+    attacks?: number | null;
+    bombs?: number | null;
+    damage?: number | null;
+    flightTime?: number | null;
+    health?: number | null;
+    floodChance?: number | null;
+    fireChance?: number | null;
+    penetration?: number | null;
+    radius?: number | null;
+    detonationTimer?: number | null;
+    detonationDepth?: number | null;
+    dropInterval?: number | null;
+    minRangeKm?: number | null;
   } | null;
   acquisition?: {
     category: AcquisitionCategory;
@@ -240,9 +325,57 @@ export interface CompactShipCatalogItem {
     otherOffers?: AdditionalOffer[];
   };
   consumables?: ConsumableItem[];
+
+  // General Metrics matching shiptool.st (p=GEN)
+  year?: string | null;
+  length?: number | null;
+  beam?: number | null;
+  tonnage?: number | null;
+  enginePower?: number | null;
+  powerWeight?: number | null;
+  acceleration?: number | null;
+
+  // Diving Metrics matching shiptool.st (p=DIV)
+  subDetectability?: number | null;
+  submergedSpeed?: number | null;
+  divingPlaneShift?: number | null;
+  diveSpeed?: number | null;
+  diveCapacity?: number | null;
+  diveDepletionRate?: number | null;
+  diveRechargeRate?: number | null;
+
+  // Sonar (p=SON)
+  sonar?: SubmarineSonarStats | null;
+
+  // Combat Instructions & Innate Skills (p=CI, p=IS)
+  combatInstructions?: { name: string; duration?: number } | null;
+  hasCombatInstructions?: boolean;
+  innateSkills?: { name: string } | null;
+  hasInnateSkills?: boolean;
 }
 
-export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'secondary' | 'torpedoes' | 'aa' | 'asw' | 'consumables' | 'all';
+export type ColumnPreset =
+  | 'general'
+  | 'survivability'
+  | 'diving'
+  | 'artillery'
+  | 'ap_shells'
+  | 'he_shells'
+  | 'sap_shells'
+  | 'secondary'
+  | 'sonar'
+  | 'torpedoes'
+  | 'aa'
+  | 'asw'
+  | 'airstrike'
+  | 'attack_aircraft'
+  | 'torpedo_bombers'
+  | 'bombers'
+  | 'skip_bombers'
+  | 'consumables'
+  | 'combat_instructions'
+  | 'innate'
+  | 'all';
 
 
 export interface BallisticsPoint {

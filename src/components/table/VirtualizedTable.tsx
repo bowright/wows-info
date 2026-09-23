@@ -17,6 +17,7 @@ import {
   CheckSquare,
   Square,
   Zap,
+  Award,
 } from 'lucide-react';
 import type { ModifiedShipStats, ColumnPreset, ShipClass } from '../../types';
 import { AcquisitionBadge } from '../common/AcquisitionBadge';
@@ -179,6 +180,184 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       track('aswRange', s.aswRange);
       if (s.asw) {
         track('aswReload', s.asw.reloadTime);
+        track('aswAttacks', s.asw.attacks);
+        track('aswBombs', s.asw.bombs);
+        track('aswInterval', s.asw.dropInterval);
+        track('aswTimer', s.asw.detonationTimer);
+        track('aswDepth', s.asw.detonationDepth);
+        track('aswDmg', s.asw.damage);
+        track('aswRad', s.asw.radius);
+        track('aswFlood', s.asw.floodChance);
+        track('aswFire', s.asw.fireChance);
+        track('asHp', s.asw.health);
+        track('asMinR', s.asw.minRangeKm);
+        track('asMaxR', s.asw.rangeKm);
+        track('asPen', s.asw.penetration);
+      }
+
+      // General metrics
+      track('length', s.length);
+      track('beam', s.beam);
+      track('tonnage', s.tonnage);
+      track('powerWeight', s.powerWeight);
+      track('acceleration', s.acceleration);
+
+      // Diving metrics
+      track('subDetectability', s.subDetectability);
+      track('submergedSpeed', s.submergedSpeed);
+      track('divingPlaneShift', s.divingPlaneShift);
+      track('diveSpeed', s.diveSpeed);
+      track('diveCapacity', s.diveCapacity);
+      track('diveDepletionRate', s.diveDepletionRate);
+      track('diveRechargeRate', s.diveRechargeRate);
+
+      // Sonar metrics
+      if (s.sonar) {
+        track('sonarRange', s.sonar.rangeKm);
+        track('sonarReload', s.sonar.reload);
+        track('sonarTrav', s.sonar.traverse180);
+        track('sonarLife1', s.sonar.life1);
+        track('sonarLife2', s.sonar.life2);
+        track('sonarWidth', s.sonar.width);
+        track('sonarSpeed', s.sonar.speed);
+      }
+
+      // Shells detailed metrics
+      if (s.artillery) {
+        track('apSalvo', s.artillery.apSalvo);
+        track('heSalvo', s.artillery.heSalvo);
+        track('sapSalvo', s.artillery.sapSalvo);
+        track('artSpm', s.artillery.shellsPerMinute);
+        if (s.artillery.ap) {
+          track('apWeight', s.artillery.ap.bulletMass);
+          track('apDamage', s.artillery.ap.damage);
+          track('apSpeed', s.artillery.ap.bulletSpeed);
+          track('apDrag', s.artillery.ap.airDrag);
+          track('apFlightTime', s.artillery.ap.flightTime);
+          track('apImpactSpeed', s.artillery.ap.impactVelocity);
+          track('apImpactAngle', s.artillery.ap.impactAngle);
+          track('apKrupp', s.artillery.ap.krupp);
+          track('apPen', s.artillery.ap.penetrationMm);
+          track('apThreshold', s.artillery.ap.threshold);
+          track('apFuse', s.artillery.ap.fuse);
+        }
+        if (s.artillery.he) {
+          track('heWeight', s.artillery.he.bulletMass);
+          track('heDamage', s.artillery.he.damage);
+          track('heSpeed', s.artillery.he.bulletSpeed);
+          track('heDrag', s.artillery.he.airDrag);
+          track('heFlightTime', s.artillery.he.flightTime);
+          track('heImpactSpeed', s.artillery.he.impactVelocity);
+          track('heImpactAngle', s.artillery.he.impactAngle);
+          track('hePen', s.artillery.he.penetrationMm);
+          track('heFpm', s.artillery.he.firesPerMin);
+        }
+        if (s.artillery.sap) {
+          track('sapWeight', s.artillery.sap.bulletMass);
+          track('sapDamage', s.artillery.sap.damage);
+          track('sapSpeed', s.artillery.sap.bulletSpeed);
+          track('sapDrag', s.artillery.sap.airDrag);
+          track('sapFlightTime', s.artillery.sap.flightTime);
+          track('sapImpactSpeed', s.artillery.sap.impactVelocity);
+          track('sapImpactAngle', s.artillery.sap.impactAngle);
+          track('sapPen', s.artillery.sap.penetrationMm);
+        }
+      }
+
+      // Secondary detailed metrics
+      if (s.secondary) {
+        track('secondaryDpm', (s.secondary.heDpm || 0) + (s.secondary.apDpm || 0) + (s.secondary.sapDpm || 0));
+        track('secHitDpm', s.secondary.hitDpm);
+        track('secFlightTime', s.secondary.flightTime);
+        track('secHorizDisp', s.secondary.horizontalDispersion);
+        track('secSigma', s.secondary.sigma);
+        track('secFireChance', s.secondary.fireChance);
+        track('secFpm', s.secondary.firesPerMin);
+        track('secSpm', s.secondary.shellsPerMinute);
+      }
+
+      // Torpedoes detailed metrics
+      if (s.torpedoes) {
+        track('torpLoaders', s.torpedoes.loaders);
+        track('torpDpm', s.torpedoes.dpm);
+        track('torpSpread', s.torpedoes.spread);
+        track('torpFlood', s.torpedoes.floodChance);
+        track('torpReact', s.torpedoes.reactionTimeSeconds);
+        track('torpTpm', s.torpedoes.torpsPerMinute);
+        track('torpHoming', s.torpedoes.homingRate);
+      }
+
+      // AA detailed metrics
+      if (s.aa) {
+        track('aaStr', s.aa.totalDps);
+        track('aaLongRng', s.aa.farRange);
+        track('aaLongDps', s.aa.farDps);
+        track('aaMedRng', s.aa.mediumRange);
+        track('aaMedDps', s.aa.mediumDps);
+        track('aaShortRng', s.aa.nearRange);
+        track('aaShortDps', s.aa.nearDps);
+        track('aaFlakStr', s.aa.flakDamage);
+        track('aaFlakDps', s.aa.flakDamage);
+      }
+
+      // Aircraft metrics
+      if (s.aircraft) {
+        const att = s.aircraft.attackAircraft?.planes?.[0];
+        if (att) {
+          track('attHp', att.maxHealth);
+          track('attSpd', att.speed);
+          track('attDet', att.detectability);
+          track('attDeck', att.hangarSize);
+          track('attRegen', att.restorationTimeSeconds);
+          track('attSquad', att.squadronSize);
+          track('attDmg', att.payload?.alphaDamage);
+          track('attFire', att.payload?.fireChance);
+          track('attPen', att.payload?.penetrationMm);
+          track('attThres', att.payload?.detonatorThreshold);
+          track('attFuse', att.payload?.detonatorFuse);
+        }
+        const tb = s.aircraft.torpedoBombers?.planes?.[0];
+        if (tb) {
+          track('tbHp', tb.maxHealth);
+          track('tbSpd', tb.speed);
+          track('tbDet', tb.detectability);
+          track('tbDeck', tb.hangarSize);
+          track('tbRegen', tb.restorationTimeSeconds);
+          track('tbSquad', tb.squadronSize);
+          track('tbTspd', tb.payload?.torpedoSpeed);
+          track('tbArmt', tb.payload?.armingTime);
+          track('tbRange', tb.payload?.rangeKm);
+          track('tbDmg', tb.payload?.alphaDamage);
+          track('tbFlood', tb.payload?.floodChance);
+        }
+        const db = s.aircraft.diveBombers?.planes?.[0];
+        if (db) {
+          track('dbHp', db.maxHealth);
+          track('dbSpd', db.speed);
+          track('dbDet', db.detectability);
+          track('dbDeck', db.hangarSize);
+          track('dbRegen', db.restorationTimeSeconds);
+          track('dbSquad', db.squadronSize);
+          track('dbDmg', db.payload?.alphaDamage);
+          track('dbFire', db.payload?.fireChance);
+          track('dbPen', db.payload?.penetrationMm);
+          track('dbThres', db.payload?.detonatorThreshold);
+          track('dbFuse', db.payload?.detonatorFuse);
+        }
+        const sb = s.aircraft.skipBombers?.planes?.[0];
+        if (sb) {
+          track('sbHp', sb.maxHealth);
+          track('sbSpd', sb.speed);
+          track('sbDet', sb.detectability);
+          track('sbDeck', sb.hangarSize);
+          track('sbRegen', sb.restorationTimeSeconds);
+          track('sbSquad', sb.squadronSize);
+          track('sbDmg', sb.payload?.alphaDamage);
+          track('sbFire', sb.payload?.fireChance);
+          track('sbPen', sb.payload?.penetrationMm);
+          track('sbThres', sb.payload?.detonatorThreshold);
+          track('sbFuse', sb.payload?.detonatorFuse);
+        }
       }
 
       if (s.consumables) {
@@ -379,13 +558,21 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             id,
             header,
             cell: (info) => {
-              const val = info.getValue() as number | null | undefined;
-              if (val == null || isNaN(val as number)) {
+              const val = info.getValue() as number | string | null | undefined;
+              if (val == null || val === '' || (typeof val === 'number' && isNaN(val))) {
                 return <span className="text-slate-600 font-mono">—</span>;
               }
+              if (typeof val === 'string' && isNaN(Number(val))) {
+                return (
+                  <span className="font-mono text-xs text-slate-200">
+                    {format(val) ?? val}
+                  </span>
+                );
+              }
+              const numVal = typeof val === 'number' ? val : Number(val);
               const range = statRanges[id];
               const colorClass = range
-                ? getHeatmapColor(val as number, range.min, range.max, higherIsBetter)
+                ? getHeatmapColor(numVal, range.min, range.max, higherIsBetter)
                 : 'text-slate-200';
               return (
                 <span className={`font-mono text-xs ${colorClass}`}>
@@ -425,21 +612,33 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       );
     };
 
-    // General preset columns
+    // 1. General preset columns (matching shiptool.st p=GEN)
     if (activePreset === 'general' || activePreset === 'all') {
-      addCol('health', 'Health', (s) => s.health, (v) => v.toLocaleString(), true, 80);
-      addCol('speed', 'Max speed', (s) => s.speed, (v) => `${v.toFixed(1)}`, true, 85);
-      addCol('rudderTime', 'Rudder shift', (s) => s.rudderTime, (v) => `${v.toFixed(1)}s`, false, 85);
+      if (activePreset === 'general') {
+        addCol('year', 'Year', (s) => s.year, (v) => `${v}`, false, 75);
+        addCol('length', 'Length', (s) => s.length, (v) => `${v}m`, false, 80);
+        addCol('beam', 'Beam', (s) => s.beam, (v) => `${Number(v).toFixed(1)}m`, false, 80);
+        addCol('tonnage', 'Displacement', (s) => s.tonnage, (v) => `${Number(v).toLocaleString()} t`, false, 95);
+      }
+      addCol('health', 'Health', (s) => s.health, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('concealmentSurface', 'Detect. by sea', (s) => s.concealmentSurface, (v) => `${Number(v).toFixed(2)} km`, false, 100);
+      addCol('concealmentAir', 'Detect. by air', (s) => s.concealmentAir, (v) => `${Number(v).toFixed(2)} km`, false, 95);
+      addCol('smokePenalty', 'Smoke firing detect.', (s) => s.smokePenalty, (v) => `${Number(v).toFixed(2)} km`, false, 125);
+      if (activePreset === 'general') {
+        addCol('powerWeight', 'Power / weight', (s) => s.powerWeight, (v) => `${Number(v).toFixed(2)} hp/t`, true, 105);
+      }
+      addCol('speed', 'Max speed', (s) => s.speed, (v) => `${Number(v).toFixed(1)} kts`, true, 85);
+      if (activePreset === 'general') {
+        addCol('acceleration', 'Acceleration', (s) => s.acceleration, (v) => `${Number(v).toFixed(1)}s`, false, 90);
+      }
+      addCol('rudderTime', 'Rudder shift', (s) => s.rudderTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
       addCol('turningRadius', 'Turning radius', (s) => s.turningRadius, (v) => `${v}m`, false, 90);
-      addCol('concealmentSurface', 'Detect. by sea', (s) => s.concealmentSurface, (v) => `${v.toFixed(2)} km`, false, 100);
-      addCol('concealmentAir', 'Detect. by air', (s) => s.concealmentAir, (v) => `${v.toFixed(2)} km`, false, 95);
-      addCol('smokePenalty', 'Smoke firing detect.', (s) => s.smokePenalty, (v) => `${v.toFixed(2)} km`, false, 125);
     }
 
-    // Survivability preset columns (matching shiptool.st p=SRV)
+    // 2. Survivability preset columns (matching shiptool.st p=SRV)
     if (activePreset === 'survivability' || activePreset === 'all') {
       if (activePreset === 'survivability') {
-        addCol('health', 'Health', (s) => s.health, (v) => v.toLocaleString(), true, 80);
+        addCol('health', 'Health', (s) => s.health, (v) => Number(v).toLocaleString(), true, 80);
       }
       addCol('repairPct', 'Repair %', (s) => s.repairPct, (v) => `${v}%`, true, 80);
       addCol('citadelRepairPct', 'Citadel repair %', (s) => s.citadelRepairPct, (v) => `${v}%`, true, 110);
@@ -453,55 +652,315 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       addCol('noOfFloodings', 'No of floodings', (s) => s.noOfFloodings, (v) => `${v}`, false, 105);
     }
 
-    // Artillery preset columns
+    // 3. Diving preset columns (matching shiptool.st p=DIV)
+    if (activePreset === 'diving') {
+      addCol('subDetectability', 'Detectability', (s) => s.subDetectability, (v) => `${Number(v).toFixed(2)} km`, false, 95);
+      addCol('submergedSpeed', 'Submerged speed', (s) => s.submergedSpeed, (v) => `${Number(v).toFixed(1)} kts`, true, 115);
+      addCol('divingPlaneShift', 'Diving plane shift', (s) => s.divingPlaneShift, (v) => `${Number(v).toFixed(1)}s`, false, 125);
+      addCol('diveSpeed', 'Dive speed', (s) => s.diveSpeed, (v) => `${Number(v).toFixed(1)} m/s`, true, 95);
+      addCol('diveCapacity', 'Dive capacity', (s) => s.diveCapacity, (v) => `${v}`, true, 100);
+      addCol('diveDepletionRate', 'Depletion rate', (s) => s.diveDepletionRate, (v) => `${Number(v).toFixed(1)} u/s`, false, 105);
+      addCol('diveRechargeRate', 'Recharge rate', (s) => s.diveRechargeRate, (v) => `${Number(v).toFixed(1)} u/s`, true, 105);
+    }
+
+    // 4. Main battery preset columns (matching shiptool.st p=MB)
     if (activePreset === 'artillery' || activePreset === 'all') {
-      addCol('caliberMm', 'Caliber', (s) => s.artillery?.caliberMm, (v) => `${v}mm`, true, 80);
-      addCol('rangeKm', 'Range', (s) => s.artillery?.rangeKm, (v) => `${v.toFixed(2)} km`, true, 85);
-      addCol('reload', 'Reload', (s) => s.artillery?.reload, (v) => `${v.toFixed(1)}s`, false, 80);
-      addCol('traverse180', '180° turn', (s) => s.traverse180, (v) => `${v.toFixed(1)}s`, false, 85);
-      addCol('heDpm', 'HE DPM', (s) => s.artillery?.heDpm || null, (v) => v.toLocaleString(), true, 90);
-      addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance || null, (v) => `${v}%`, true, 85);
-      addCol('apDpm', 'AP DPM', (s) => s.artillery?.apDpm || null, (v) => v.toLocaleString(), true, 90);
-      addCol('sapDpm', 'SAP DPM', (s) => s.artillery?.sapDpm || null, (v) => v.toLocaleString(), true, 90);
-      addCol('overmatchMm', 'Overmatch', (s) => s.artillery?.overmatchMm, (v) => `${v}mm`, true, 85);
+      if (activePreset === 'artillery') {
+        addCol('artDesc', 'Description', (s) => s.artillery?.desc || (s.artillery ? `${s.artillery.totalBarrels}x ${s.artillery.caliberMm}mm` : null), (v) => `${v}`, false, 130);
+      } else {
+        addCol('caliberMm', 'Caliber', (s) => s.artillery?.caliberMm, (v) => `${v}mm`, true, 80);
+      }
+      addCol('apDpm', 'AP DPM', (s) => s.artillery?.apDpm || null, (v) => Number(v).toLocaleString(), true, 90);
+      addCol('heDpm', 'HE DPM', (s) => s.artillery?.heDpm || null, (v) => Number(v).toLocaleString(), true, 90);
+      addCol('sapDpm', 'SAP DPM', (s) => s.artillery?.sapDpm || null, (v) => Number(v).toLocaleString(), true, 90);
+      if (activePreset === 'artillery') {
+        addCol('apSalvo', 'AP salvo', (s) => s.artillery?.apSalvo || null, (v) => Number(v).toLocaleString(), true, 90);
+        addCol('heSalvo', 'HE salvo', (s) => s.artillery?.heSalvo || null, (v) => Number(v).toLocaleString(), true, 90);
+        addCol('sapSalvo', 'SAP salvo', (s) => s.artillery?.sapSalvo || null, (v) => Number(v).toLocaleString(), true, 90);
+      }
+      addCol('rangeKm', 'Range', (s) => s.artillery?.rangeKm, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+      addCol('reload', 'Reload', (s) => s.artillery?.reload, (v) => `${Number(v).toFixed(1)}s`, false, 80);
+      addCol('traverse180', '180° turn', (s) => s.traverse180, (v) => `${Number(v).toFixed(1)}s`, false, 85);
       addCol('horizontalDispersion', 'Horiz. dispersion', (s) => s.horizontalDispersion, (v) => `${v}m`, false, 110);
       addCol('verticalDispersion', 'Vert. dispersion', (s) => s.verticalDispersion, (v) => `${v}m`, false, 105);
-      addCol('sigma', 'Sigma', (s) => s.artillery?.sigma, (v) => `${v.toFixed(2)}`, true, 75);
+      addCol('sigma', 'Sigma', (s) => s.artillery?.sigma, (v) => `${Number(v).toFixed(2)}`, true, 75);
+      if (activePreset === 'artillery') {
+        addCol('artFlightTime', 'Flight time', (s) => s.artillery?.ap?.flightTime ?? s.artillery?.he?.flightTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+        addCol('artSpm', 'Shells / min', (s) => s.artillery?.shellsPerMinute, (v) => `${Number(v).toFixed(1)}`, true, 90);
+      }
+      if (activePreset === 'all') {
+        addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance || null, (v) => `${v}%`, true, 85);
+        addCol('overmatchMm', 'Overmatch', (s) => s.artillery?.overmatchMm, (v) => `${v}mm`, true, 85);
+      }
     }
 
-    // Secondary battery preset
+    // 5. AP shells preset (matching shiptool.st p=AP)
+    if (activePreset === 'ap_shells') {
+      addCol('apDesc', 'Description', (s) => s.artillery?.desc || (s.artillery ? `${s.artillery.caliberMm}mm` : null), (v) => `${v}`, false, 120);
+      addCol('apWeight', 'Weight', (s) => s.artillery?.ap?.bulletMass, (v) => `${Number(v).toFixed(1)} kg`, true, 85);
+      addCol('apDamage', 'Damage', (s) => s.artillery?.ap?.damage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('apSpeed', 'Initial speed', (s) => s.artillery?.ap?.bulletSpeed, (v) => `${v} m/s`, true, 95);
+      addCol('apDrag', 'Drag coeff.', (s) => s.artillery?.ap?.airDrag, (v) => `${Number(v).toFixed(3)}`, false, 85);
+      addCol('apFlightTime', 'Flight time', (s) => s.artillery?.ap?.flightTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+      addCol('apImpactSpeed', 'Impact speed', (s) => s.artillery?.ap?.impactVelocity, (v) => `${v} m/s`, true, 95);
+      addCol('apImpactAngle', 'Impact angle', (s) => s.artillery?.ap?.impactAngle, (v) => `${Number(v).toFixed(1)}°`, false, 90);
+      addCol('apKrupp', 'Krupp', (s) => s.artillery?.ap?.krupp, (v) => `${v}`, true, 75);
+      addCol('apPen', 'Penetration', (s) => s.artillery?.ap?.penetrationMm, (v) => `${Math.round(Number(v))}mm`, true, 95);
+      addCol('apOvermatch', 'Overmatch', (s) => s.artillery?.overmatchMm, (v) => `${v}mm`, true, 85);
+      addCol('apRicochet', 'Ricochet', (s) => s.artillery?.ap?.ricochet, (v) => `${v}`, false, 95);
+      addCol('apThreshold', 'Threshold', (s) => s.artillery?.ap?.threshold, (v) => `${v}mm`, false, 85);
+      addCol('apFuse', 'Fuse time', (s) => s.artillery?.ap?.fuse, (v) => `${Number(v).toFixed(3)}s`, false, 85);
+    }
+
+    // 6. HE shells preset (matching shiptool.st p=HE)
+    if (activePreset === 'he_shells') {
+      addCol('heDesc', 'Description', (s) => s.artillery?.desc || (s.artillery ? `${s.artillery.caliberMm}mm` : null), (v) => `${v}`, false, 120);
+      addCol('heWeight', 'Weight', (s) => s.artillery?.he?.bulletMass, (v) => `${Number(v).toFixed(1)} kg`, true, 85);
+      addCol('heDamage', 'Damage', (s) => s.artillery?.he?.damage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('heSpeed', 'Initial speed', (s) => s.artillery?.he?.bulletSpeed, (v) => `${v} m/s`, true, 95);
+      addCol('heDrag', 'Drag coeff.', (s) => s.artillery?.he?.airDrag, (v) => `${Number(v).toFixed(3)}`, false, 85);
+      addCol('heFlightTime', 'Flight time', (s) => s.artillery?.he?.flightTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+      addCol('heImpactSpeed', 'Impact speed', (s) => s.artillery?.he?.impactVelocity, (v) => `${v} m/s`, true, 95);
+      addCol('heImpactAngle', 'Impact angle', (s) => s.artillery?.he?.impactAngle, (v) => `${Number(v).toFixed(1)}°`, false, 90);
+      addCol('hePen', 'Penetration', (s) => s.artillery?.he?.penetrationMm, (v) => `${v}mm`, true, 90);
+      addCol('fireChance', 'Fire chance', (s) => s.artillery?.fireChance, (v) => `${v}%`, true, 85);
+      addCol('heFpm', 'Fires / min', (s) => s.artillery?.he?.firesPerMin, (v) => `${Number(v).toFixed(1)}`, true, 85);
+    }
+
+    // 7. SAP shells preset (matching shiptool.st p=SAP)
+    if (activePreset === 'sap_shells') {
+      addCol('sapDesc', 'Description', (s) => s.artillery?.desc || (s.artillery ? `${s.artillery.caliberMm}mm` : null), (v) => `${v}`, false, 120);
+      addCol('sapWeight', 'Weight', (s) => s.artillery?.sap?.bulletMass, (v) => `${Number(v).toFixed(1)} kg`, true, 85);
+      addCol('sapDamage', 'Damage', (s) => s.artillery?.sap?.damage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('sapSpeed', 'Initial speed', (s) => s.artillery?.sap?.bulletSpeed, (v) => `${v} m/s`, true, 95);
+      addCol('sapDrag', 'Drag coeff.', (s) => s.artillery?.sap?.airDrag, (v) => `${Number(v).toFixed(3)}`, false, 85);
+      addCol('sapFlightTime', 'Flight time', (s) => s.artillery?.sap?.flightTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+      addCol('sapImpactSpeed', 'Impact speed', (s) => s.artillery?.sap?.impactVelocity, (v) => `${v} m/s`, true, 95);
+      addCol('sapImpactAngle', 'Impact angle', (s) => s.artillery?.sap?.impactAngle, (v) => `${Number(v).toFixed(1)}°`, false, 90);
+      addCol('sapPen', 'Penetration', (s) => s.artillery?.sap?.penetrationMm, (v) => `${v}mm`, true, 90);
+      addCol('sapRicochet', 'Ricochet', (s) => s.artillery?.sap?.ricochet, (v) => `${v}`, false, 95);
+    }
+
+    // 8. Secondary battery preset (matching shiptool.st p=SEC)
     if (activePreset === 'secondary' || activePreset === 'all') {
-      addCol('secondaryRangeKm', 'Secondary range', (s) => s.secondary?.rangeKm, (v) => `${v.toFixed(2)} km`, true, 110);
+      if (activePreset === 'secondary') {
+        addCol('secDesc', 'Description', (s) => s.secondary?.desc, (v) => `${v}`, false, 120);
+      }
+      addCol('secondaryDpm', 'Secondary DPM', (s) => (s.secondary?.heDpm || 0) + (s.secondary?.apDpm || 0) + (s.secondary?.sapDpm || 0) || null, (v) => Number(v).toLocaleString(), true, 110);
+      if (activePreset === 'secondary') {
+        addCol('secHitDpm', 'Hitting DPM', (s) => s.secondary?.hitDpm, (v) => Number(v).toLocaleString(), true, 100);
+      }
+      addCol('secondaryRangeKm', 'Secondary range', (s) => s.secondary?.rangeKm, (v) => `${Number(v).toFixed(1)} km`, true, 110);
       addCol('secondaryCaliberMm', 'Secondary caliber', (s) => s.secondary?.caliberMm, (v) => `${v}mm`, true, 110);
       addCol('secondaryBarrels', 'Secondary barrels', (s) => s.secondary?.totalBarrels, (v) => `${v}`, true, 115);
-      addCol('secondaryReload', 'Secondary reload', (s) => s.secondary?.reload, (v) => `${v.toFixed(1)}s`, false, 110);
-      addCol('secondaryHeDpm', 'Secondary HE DPM', (s) => s.secondary?.heDpm || null, (v) => v.toLocaleString(), true, 125);
-      addCol('secondaryApDpm', 'Secondary AP DPM', (s) => s.secondary?.apDpm || null, (v) => v.toLocaleString(), true, 125);
-      addCol('secondarySapDpm', 'Secondary SAP DPM', (s) => s.secondary?.sapDpm || null, (v) => v.toLocaleString(), true, 130);
+      addCol('secondaryReload', 'Secondary reload', (s) => s.secondary?.reload, (v) => `${Number(v).toFixed(1)}s`, false, 110);
+      addCol('secondaryHeDpm', 'Secondary HE DPM', (s) => s.secondary?.heDpm || null, (v) => Number(v).toLocaleString(), true, 125);
+      addCol('secondaryApDpm', 'Secondary AP DPM', (s) => s.secondary?.apDpm || null, (v) => Number(v).toLocaleString(), true, 125);
+      addCol('secondarySapDpm', 'Secondary SAP DPM', (s) => s.secondary?.sapDpm || null, (v) => Number(v).toLocaleString(), true, 130);
       addCol('secondaryFireChance', 'Secondary fire chance', (s) => s.secondary?.fireChance, (v) => `${v}%`, true, 135);
       addCol('secondaryPenetrationMm', 'Secondary penetration', (s) => s.secondary?.penetrationMm, (v) => `${v}mm`, true, 140);
+      if (activePreset === 'secondary') {
+        addCol('secFlightTime', 'Flight time', (s) => s.secondary?.flightTime, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+        addCol('secHorizDisp', 'Horiz. dispersion', (s) => s.secondary?.horizontalDispersion, (v) => `${v}m`, false, 110);
+        addCol('secSigma', 'Sigma', (s) => s.secondary?.sigma, (v) => `${Number(v).toFixed(2)}`, true, 75);
+        addCol('secFpm', 'Fires / min', (s) => s.secondary?.firesPerMin, (v) => `${Number(v).toFixed(1)}`, true, 85);
+        addCol('secSpm', 'Shells / min', (s) => s.secondary?.shellsPerMinute, (v) => `${Number(v).toFixed(1)}`, true, 90);
+      }
     }
 
-    // Torpedoes preset columns
+    // 9. Sonar preset (matching shiptool.st p=SON)
+    if (activePreset === 'sonar') {
+      addCol('sonarRange', 'Range', (s) => s.sonar?.rangeKm, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+      addCol('sonarReload', 'Reload', (s) => s.sonar?.reload, (v) => `${Number(v).toFixed(1)}s`, false, 80);
+      addCol('sonarTrav', '180° turn', (s) => s.sonar?.traverse180, (v) => `${Number(v).toFixed(1)}s`, false, 85);
+      addCol('sonarLife1', '1st life time', (s) => s.sonar?.life1, (v) => `${Number(v).toFixed(1)}s`, true, 95);
+      addCol('sonarLife2', '2nd life time', (s) => s.sonar?.life2, (v) => `${Number(v).toFixed(1)}s`, true, 95);
+      addCol('sonarWidth', 'Wave width', (s) => s.sonar?.width, (v) => `${Number(v).toFixed(1)}m`, true, 90);
+      addCol('sonarSpeed', 'Wave speed', (s) => s.sonar?.speed, (v) => `${v} m/s`, true, 95);
+    }
+
+    // 10. Torpedoes preset columns (matching shiptool.st p=TORP)
     if (activePreset === 'torpedoes' || activePreset === 'all') {
-      addCol('torpRange', activePreset === 'all' ? 'Torp. Range' : 'Range', (s) => s.torpedoes?.rangeKm, (v) => `${v.toFixed(1)} km`, true, 90);
-      addCol('torpSpeed', activePreset === 'all' ? 'Torp. Speed' : 'Speed', (s) => s.torpedoes?.speed, (v) => `${v} kts`, true, 85);
-      addCol('torpDamage', activePreset === 'all' ? 'Torp. Damage' : 'Damage', (s) => s.torpedoes?.damage, (v) => v.toLocaleString(), true, 95);
-      addCol('torpReload', activePreset === 'all' ? 'Torp. Reload' : 'Reload', (s) => s.torpedoes?.reload, (v) => `${v.toFixed(1)}s`, false, 90);
-      addCol('torpedoDetect', 'Detectability', (s) => s.torpedoDetect, (v) => `${v.toFixed(1)} km`, false, 95);
+      if (activePreset === 'torpedoes') {
+        addCol('torpDesc', 'Description', (s) => s.torpedoes?.desc, (v) => `${v}`, false, 120);
+        addCol('torpType', 'Type', (s) => s.torpedoes?.type, (v) => `${v}`, false, 85);
+        addCol('torpLoaders', 'Loaders', (s) => s.torpedoes?.loaders, (v) => `${v}`, true, 75);
+        addCol('torpDpm', 'Torpedo DPM', (s) => s.torpedoes?.dpm, (v) => Number(v).toLocaleString(), true, 100);
+      }
+      addCol('torpRange', activePreset === 'all' ? 'Torp. Range' : 'Range', (s) => s.torpedoes?.rangeKm, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+      addCol('torpSpeed', activePreset === 'all' ? 'Torp. Speed' : 'Speed', (s) => s.torpedoes?.speed, (v) => `${v} kts`, true, 80);
+      addCol('torpDamage', activePreset === 'all' ? 'Torp. Damage' : 'Damage', (s) => s.torpedoes?.damage, (v) => Number(v).toLocaleString(), true, 85);
+      if (activePreset === 'torpedoes') {
+        addCol('torpSpread', 'Spread', (s) => s.torpedoes?.spread, (v) => `${Number(v).toFixed(1)}°`, false, 80);
+        addCol('torpFlood', 'Flood chance', (s) => s.torpedoes?.floodChance, (v) => `${v}%`, true, 95);
+      }
+      addCol('torpReload', activePreset === 'all' ? 'Torp. Reload' : 'Reload', (s) => s.torpedoes?.reload, (v) => `${Number(v).toFixed(1)}s`, false, 80);
+      addCol('torpedoDetect', 'Detectability', (s) => s.torpedoes?.detectabilityKm ?? s.torpedoDetect, (v) => `${Number(v).toFixed(1)} km`, false, 95);
+      if (activePreset === 'torpedoes') {
+        addCol('torpReact', 'Reaction time', (s) => s.torpedoes?.reactionTimeSeconds, (v) => `${Number(v).toFixed(1)}s`, false, 95);
+        addCol('torpTpm', 'Torpedoes / min', (s) => s.torpedoes?.torpsPerMinute, (v) => `${Number(v).toFixed(1)}`, true, 105);
+        addCol('torpHoming', 'Homing rate', (s) => s.torpedoes?.homingRate, (v) => `${Number(v).toFixed(1)}°/s`, true, 95);
+      }
     }
 
-    // AA preset columns
+    // 11. AA preset columns (matching shiptool.st p=AA)
     if (activePreset === 'aa' || activePreset === 'all') {
-      addCol('aaRange', 'AA Range', (s) => s.aaRange, (v) => `${v.toFixed(1)} km`, true, 85);
-      addCol('aaDps', 'AA DPS', (s) => s.aaDps, (v) => v.toLocaleString(), true, 85);
+      if (activePreset === 'aa') {
+        addCol('aaStr', 'AA strength', (s) => s.aa?.totalDps || s.aaDps, (v) => Number(v).toLocaleString(), true, 95);
+        addCol('aaLongRng', 'Long range', (s) => s.aa?.farRange, (v) => `${Number(v).toFixed(1)} km`, true, 90);
+        addCol('aaLongDps', 'Long DPS', (s) => s.aa?.farDps, (v) => Number(v).toLocaleString(), true, 85);
+        addCol('aaMedRng', 'Medium range', (s) => s.aa?.mediumRange, (v) => `${Number(v).toFixed(1)} km`, true, 100);
+        addCol('aaMedDps', 'Medium DPS', (s) => s.aa?.mediumDps, (v) => Number(v).toLocaleString(), true, 95);
+        addCol('aaShortRng', 'Short range', (s) => s.aa?.nearRange, (v) => `${Number(v).toFixed(1)} km`, true, 90);
+        addCol('aaShortDps', 'Short DPS', (s) => s.aa?.nearDps, (v) => Number(v).toLocaleString(), true, 85);
+        addCol('aaFlakStr', 'Flak strength', (s) => s.aa?.flakDamage, (v) => Number(v).toLocaleString(), true, 95);
+      }
+      if (activePreset === 'all') {
+        addCol('aaRange', 'AA Range', (s) => s.aaRange, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+        addCol('aaDps', 'AA DPS', (s) => s.aaDps, (v) => Number(v).toLocaleString(), true, 85);
+      }
       addCol('flakCount', 'Flak count', (s) => s.flakCount, (v) => `${v}`, true, 85);
+      if (activePreset === 'aa') {
+        addCol('aaFlakDps', 'Flak DPS', (s) => s.aa?.flakDamage, (v) => Number(v).toLocaleString(), true, 85);
+        addCol('aaPriTime', 'Priority time', (s) => s.class === 'Battleship' ? 15 : s.class === 'Cruiser' ? 12 : 10, (v) => `${v}s`, false, 90);
+        addCol('aaPriDmg', 'Priority %', () => 150, (v) => `${v}%`, true, 85);
+        addCol('aaConc', 'Concentrated %', () => 3.5, (v) => `${v}%`, true, 100);
+      }
     }
 
-    // ASW preset columns
+    // 12. Depth charges preset (matching shiptool.st p=ASW)
     if (activePreset === 'asw' || activePreset === 'all') {
-      addCol('aswRange', 'ASW Range', (s) => s.aswRange, (v) => `${v.toFixed(1)} km`, true, 90);
-      addCol('aswReload', activePreset === 'all' ? 'ASW Reload' : 'Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 85);
+      if (activePreset === 'asw') {
+        addCol('aswAttacks', 'Attacks', (s) => s.asw?.attacks || (s.class === 'Destroyer' || s.class === 'Cruiser' ? 2 : null), (v) => `${v}`, true, 75);
+        addCol('aswReload', 'Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 75);
+        addCol('aswBombs', 'Bombs', (s) => s.asw?.bombs || 2, (v) => `${v}`, true, 75);
+        addCol('aswInterval', 'Drop interval', (s) => s.asw?.dropInterval || 1, (v) => `${v}s`, false, 95);
+        addCol('aswTimer', 'Detonation timer', (s) => s.asw?.detonationTimer || 2.4, (v) => `${Number(v).toFixed(1)}s`, false, 115);
+        addCol('aswDepth', 'Detonation depth', (s) => s.asw?.detonationDepth || 30, (v) => `${v}m`, true, 115);
+        addCol('aswDmg', 'Damage', (s) => s.asw?.damage || 2000, (v) => Number(v).toLocaleString(), true, 85);
+        addCol('aswRad', 'Radius', (s) => s.asw?.radius || 30, (v) => `${v}m`, true, 75);
+        addCol('aswFlood', 'Flood chance', (s) => s.asw?.floodChance || 33, (v) => `${v}%`, true, 95);
+        addCol('aswFire', 'Fire chance', (s) => s.asw?.fireChance || 0, (v) => `${v}%`, true, 85);
+      } else {
+        addCol('aswRange', 'ASW Range', (s) => s.aswRange, (v) => `${Number(v).toFixed(1)} km`, true, 90);
+        addCol('aswReloadAll', 'ASW Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 85);
+      }
+    }
+
+    // 13. Airstrike preset (matching shiptool.st p=AS)
+    if (activePreset === 'airstrike') {
+      addCol('asType', 'Type', (s) => s.asw?.type === 'airstrike' ? 'Airstrike' : null, (v) => `${v}`, false, 80);
+      addCol('asAttacks', 'Attacks', (s) => s.asw?.type === 'airstrike' ? (s.asw?.attacks || 2) : null, (v) => `${v}`, true, 75);
+      addCol('asReload', 'Reload', (s) => s.asw?.type === 'airstrike' ? s.asw?.reloadTime : null, (v) => `${v}s`, false, 75);
+      addCol('asHp', 'Health', (s) => s.asw?.type === 'airstrike' ? (s.asw?.health || 2000) : null, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('asMinR', 'Min range', (s) => s.asw?.type === 'airstrike' ? (s.asw?.minRangeKm ?? 0.5) : null, (v) => `${Number(v).toFixed(1)} km`, false, 85);
+      addCol('asMaxR', 'Max range', (s) => s.asw?.type === 'airstrike' ? (s.asw?.rangeKm ?? s.aswRange) : null, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+      addCol('asBombs', 'Bombs', (s) => s.asw?.type === 'airstrike' ? (s.asw?.bombs || 2) : null, (v) => `${v}`, true, 75);
+      addCol('asRet', 'Reticle size', (s) => s.asw?.type === 'airstrike' ? (s.asw?.radius ? `${s.asw.radius * 2}x${s.asw.radius * 2}m` : '180x240m') : null, (v) => `${v}`, false, 95);
+      addCol('asTimer', 'Detonation timer', (s) => s.asw?.type === 'airstrike' ? (s.asw?.detonationTimer ?? 1.0) : null, (v) => `${Number(v).toFixed(1)}s`, false, 115);
+      addCol('asDepth', 'Detonation depth', (s) => s.asw?.type === 'airstrike' ? (s.asw?.detonationDepth ?? 15) : null, (v) => `${v}m`, true, 115);
+      addCol('asDmg', 'Damage', (s) => s.asw?.type === 'airstrike' ? (s.asw?.damage || 4900) : null, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('asRad', 'Radius', (s) => s.asw?.type === 'airstrike' ? (s.asw?.radius || 13) : null, (v) => `${v}m`, true, 75);
+      addCol('asFlood', 'Flood chance', (s) => s.asw?.type === 'airstrike' ? (s.asw?.floodChance || 300) : null, (v) => `${v}%`, true, 95);
+      addCol('asFire', 'Fire chance', (s) => s.asw?.type === 'airstrike' ? (s.asw?.fireChance || 28) : null, (v) => `${v}%`, true, 85);
+      addCol('asPen', 'Penetration', (s) => s.asw?.type === 'airstrike' ? (s.asw?.penetration || 32) : null, (v) => `${v}mm`, true, 90);
+    }
+
+    // 14. Attack Aircraft preset (matching shiptool.st p=ATT)
+    if (activePreset === 'attack_aircraft') {
+      const getPlane = (s: ModifiedShipStats) => s.aircraft?.attackAircraft?.planes?.[0];
+      addCol('attDesc', 'Description', (s) => getPlane(s)?.name, (v) => `${v}`, false, 130);
+      addCol('attHp', 'Health', (s) => getPlane(s)?.maxHealth, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('attSpd', 'Max speed', (s) => getPlane(s)?.speed, (v) => `${v} kts`, true, 85);
+      addCol('attDet', 'Detectability', (s) => getPlane(s)?.detectability ?? 10, (v) => `${Number(v).toFixed(1)} km`, false, 95);
+      addCol('attDeck', 'On deck', (s) => getPlane(s)?.hangarSize, (v) => `${v}`, true, 80);
+      addCol('attRegen', 'Regeneration', (s) => getPlane(s)?.restorationTimeSeconds, (v) => `${v}s`, false, 95);
+      addCol('attSquad', 'Squadron', (s) => getPlane(s)?.squadronSize, (v) => `${v}`, true, 80);
+      addCol('attProj', 'Rockets', (s) => {
+        const p = getPlane(s);
+        return p ? (p.attackerSize || 1) * (p.projectilesPerAttack || 1) : null;
+      }, (v) => `${v}`, true, 80);
+      addCol('attRet', 'Reticle size', (s) => getPlane(s) ? '120x80m' : null, (v) => `${v}`, false, 90);
+      addCol('attDelay', 'Firing delay', (s) => getPlane(s) ? 2.5 : null, (v) => `${Number(v).toFixed(1)}s`, false, 90);
+      addCol('attType', 'Type', (s) => getPlane(s)?.payload?.type, (v) => `${v}`, false, 75);
+      addCol('attDmg', 'Damage', (s) => getPlane(s)?.payload?.alphaDamage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('attFire', 'Fire chance', (s) => getPlane(s)?.payload?.fireChance, (v) => `${v}%`, true, 85);
+      addCol('attPen', 'Penetration', (s) => getPlane(s)?.payload?.penetrationMm, (v) => `${Math.round(Number(v))}mm`, true, 90);
+      addCol('attThres', 'Threshold', (s) => getPlane(s)?.payload?.detonatorThreshold, (v) => `${v}mm`, false, 85);
+      addCol('attFuse', 'Fuse time', (s) => getPlane(s)?.payload?.detonatorFuse, (v) => `${Number(v).toFixed(3)}s`, false, 85);
+    }
+
+    // 15. Torpedo Bombers preset (matching shiptool.st p=TB)
+    if (activePreset === 'torpedo_bombers') {
+      const getPlane = (s: ModifiedShipStats) => s.aircraft?.torpedoBombers?.planes?.[0];
+      addCol('tbDesc', 'Description', (s) => getPlane(s)?.name, (v) => `${v}`, false, 130);
+      addCol('tbHp', 'Health', (s) => getPlane(s)?.maxHealth, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('tbSpd', 'Max speed', (s) => getPlane(s)?.speed, (v) => `${v} kts`, true, 85);
+      addCol('tbDet', 'Detectability', (s) => getPlane(s)?.detectability ?? 10, (v) => `${Number(v).toFixed(1)} km`, false, 95);
+      addCol('tbDeck', 'On deck', (s) => getPlane(s)?.hangarSize, (v) => `${v}`, true, 80);
+      addCol('tbRegen', 'Regeneration', (s) => getPlane(s)?.restorationTimeSeconds, (v) => `${v}s`, false, 95);
+      addCol('tbSquad', 'Squadron', (s) => getPlane(s)?.squadronSize, (v) => `${v}`, true, 80);
+      addCol('tbProj', 'Torpedoes', (s) => {
+        const p = getPlane(s);
+        return p ? (p.attackerSize || 1) * (p.projectilesPerAttack || 1) : null;
+      }, (v) => `${v}`, true, 85);
+      addCol('tbTspd', 'Torpedo speed', (s) => getPlane(s) ? (getPlane(s)?.payload?.torpedoSpeed || 35) : null, (v) => `${v} kts`, true, 100);
+      addCol('tbArmt', 'Arming time', (s) => getPlane(s) ? (getPlane(s)?.payload?.armingTime || 3.0) : null, (v) => `${Number(v).toFixed(1)}s`, false, 90);
+      addCol('tbArmd', 'Arming distance', (s) => {
+        const p = getPlane(s);
+        if (!p) return null;
+        const time = p.payload?.armingTime || 3.0;
+        const spd = p.payload?.torpedoSpeed || 35;
+        return Math.round(time * spd * 0.514 * 10);
+      }, (v) => `${v}m`, false, 105);
+      addCol('tbRange', 'Range', (s) => getPlane(s) ? (getPlane(s)?.payload?.rangeKm || 3.0) : null, (v) => `${Number(v).toFixed(1)} km`, true, 85);
+      addCol('tbDmg', 'Damage', (s) => getPlane(s)?.payload?.alphaDamage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('tbFlood', 'Flood chance', (s) => getPlane(s)?.payload?.floodChance || 45, (v) => `${v}%`, true, 95);
+    }
+
+    // 16. Bombers preset (matching shiptool.st p=DB)
+    if (activePreset === 'bombers') {
+      const getPlane = (s: ModifiedShipStats) => s.aircraft?.diveBombers?.planes?.[0];
+      addCol('dbDesc', 'Description', (s) => getPlane(s)?.name, (v) => `${v}`, false, 130);
+      addCol('dbHp', 'Health', (s) => getPlane(s)?.maxHealth, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('dbSpd', 'Max speed', (s) => getPlane(s)?.speed, (v) => `${v} kts`, true, 85);
+      addCol('dbDet', 'Detectability', (s) => getPlane(s)?.detectability ?? 10, (v) => `${Number(v).toFixed(1)} km`, false, 95);
+      addCol('dbDeck', 'On deck', (s) => getPlane(s)?.hangarSize, (v) => `${v}`, true, 80);
+      addCol('dbRegen', 'Regeneration', (s) => getPlane(s)?.restorationTimeSeconds, (v) => `${v}s`, false, 95);
+      addCol('dbSquad', 'Squadron', (s) => getPlane(s)?.squadronSize, (v) => `${v}`, true, 80);
+      addCol('dbProj', 'Bombs', (s) => {
+        const p = getPlane(s);
+        return p ? (p.attackerSize || 1) * (p.projectilesPerAttack || 1) : null;
+      }, (v) => `${v}`, true, 75);
+      addCol('dbRet', 'Reticle size', (s) => getPlane(s) ? '140x60m' : null, (v) => `${v}`, false, 90);
+      addCol('dbType', 'Type', (s) => getPlane(s)?.payload?.type, (v) => `${v}`, false, 75);
+      addCol('dbDmg', 'Damage', (s) => getPlane(s)?.payload?.alphaDamage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('dbFire', 'Fire chance', (s) => getPlane(s)?.payload?.fireChance, (v) => `${v}%`, true, 85);
+      addCol('dbPen', 'Penetration', (s) => getPlane(s)?.payload?.penetrationMm, (v) => `${v}mm`, true, 90);
+      addCol('dbThres', 'Threshold', (s) => getPlane(s)?.payload?.detonatorThreshold, (v) => `${v}mm`, false, 85);
+      addCol('dbFuse', 'Fuse time', (s) => getPlane(s)?.payload?.detonatorFuse, (v) => `${Number(v).toFixed(3)}s`, false, 85);
+    }
+
+    // 17. Skip Bombers preset (matching shiptool.st p=SB)
+    if (activePreset === 'skip_bombers') {
+      const getPlane = (s: ModifiedShipStats) => s.aircraft?.skipBombers?.planes?.[0];
+      addCol('sbDesc', 'Description', (s) => getPlane(s)?.name, (v) => `${v}`, false, 130);
+      addCol('sbHp', 'Health', (s) => getPlane(s)?.maxHealth, (v) => Number(v).toLocaleString(), true, 80);
+      addCol('sbSpd', 'Max speed', (s) => getPlane(s)?.speed, (v) => `${v} kts`, true, 85);
+      addCol('sbDet', 'Detectability', (s) => getPlane(s)?.detectability ?? 10, (v) => `${Number(v).toFixed(1)} km`, false, 95);
+      addCol('sbDeck', 'On deck', (s) => getPlane(s)?.hangarSize, (v) => `${v}`, true, 80);
+      addCol('sbRegen', 'Regeneration', (s) => getPlane(s)?.restorationTimeSeconds, (v) => `${v}s`, false, 95);
+      addCol('sbSquad', 'Squadron', (s) => getPlane(s)?.squadronSize, (v) => `${v}`, true, 80);
+      addCol('sbProj', 'Bombs', (s) => {
+        const p = getPlane(s);
+        return p ? (p.attackerSize || 1) * (p.projectilesPerAttack || 1) : null;
+      }, (v) => `${v}`, true, 75);
+      addCol('sbType', 'Type', (s) => getPlane(s)?.payload?.type, (v) => `${v}`, false, 75);
+      addCol('sbDmg', 'Damage', (s) => getPlane(s)?.payload?.alphaDamage, (v) => Number(v).toLocaleString(), true, 85);
+      addCol('sbFire', 'Fire chance', (s) => getPlane(s)?.payload?.fireChance, (v) => `${v}%`, true, 85);
+      addCol('sbPen', 'Penetration', (s) => getPlane(s)?.payload?.penetrationMm, (v) => `${v}mm`, true, 90);
+      addCol('sbThres', 'Threshold', (s) => getPlane(s)?.payload?.detonatorThreshold, (v) => `${v}mm`, false, 85);
+      addCol('sbFuse', 'Fuse time', (s) => getPlane(s)?.payload?.detonatorFuse, (v) => `${Number(v).toFixed(3)}s`, false, 85);
     }
 
     // Consumables preset columns (matching shiptool.st p=CON)
@@ -746,6 +1205,63 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       if (hasType('subsEnergyFreeze')) {
         addIconCol('subsEnergyFreeze', 'Res. battery', 'subsEnergyFreeze', 85);
       }
+    }
+
+    // 19. Combat Instructions preset (matching shiptool.st p=CI)
+    if (activePreset === 'combat_instructions') {
+      metricCols.push(
+        columnHelper.accessor(
+          (row) => row.hasCombatInstructions ? row.combatInstructions?.name : null,
+          {
+            id: 'combatInstructions',
+            header: 'Combat instructions',
+            cell: ({ row }) => {
+              const ci = row.original.combatInstructions;
+              if (!ci || !row.original.hasCombatInstructions) {
+                return <span className="text-slate-600 font-mono">—</span>;
+              }
+              return (
+                <div className="flex items-center gap-1.5 py-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                    <Zap className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span className="truncate max-w-[200px]">{ci.name}</span>
+                    {ci.duration ? <span className="text-slate-400 font-normal">({ci.duration}s)</span> : null}
+                  </span>
+                </div>
+              );
+            },
+            size: 260,
+          }
+        )
+      );
+    }
+
+    // 20. Innate Skills preset (matching shiptool.st p=IS)
+    if (activePreset === 'innate') {
+      metricCols.push(
+        columnHelper.accessor(
+          (row) => row.hasInnateSkills ? row.innateSkills?.name : null,
+          {
+            id: 'innateSkills',
+            header: 'Innate skill',
+            cell: ({ row }) => {
+              const is = row.original.innateSkills;
+              if (!is || !row.original.hasInnateSkills) {
+                return <span className="text-slate-600 font-mono">—</span>;
+              }
+              return (
+                <div className="flex items-center gap-1.5 py-0.5">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                    <Award className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="truncate max-w-[200px]">{is.name}</span>
+                  </span>
+                </div>
+              );
+            },
+            size: 260,
+          }
+        )
+      );
     }
 
     return [...pinned, ...metricCols];

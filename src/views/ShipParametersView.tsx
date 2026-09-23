@@ -37,22 +37,46 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
       const params = new URLSearchParams(window.location.search);
       const p = params.get('p') || params.get('preset');
       const presetMap: Record<string, any> = {
-        CON: 'consumables',
-        consumables: 'consumables',
-        SRV: 'survivability',
-        survivability: 'survivability',
         GEN: 'general',
         general: 'general',
+        SRV: 'survivability',
+        survivability: 'survivability',
+        DIV: 'diving',
+        diving: 'diving',
         MB: 'artillery',
         artillery: 'artillery',
+        AP: 'ap_shells',
+        ap_shells: 'ap_shells',
+        HE: 'he_shells',
+        he_shells: 'he_shells',
+        SAP: 'sap_shells',
+        sap_shells: 'sap_shells',
         SEC: 'secondary',
         secondary: 'secondary',
+        SON: 'sonar',
+        sonar: 'sonar',
         TORP: 'torpedoes',
         torpedoes: 'torpedoes',
         AA: 'aa',
         aa: 'aa',
         ASW: 'asw',
         asw: 'asw',
+        AS: 'airstrike',
+        airstrike: 'airstrike',
+        ATT: 'attack_aircraft',
+        attack_aircraft: 'attack_aircraft',
+        TB: 'torpedo_bombers',
+        torpedo_bombers: 'torpedo_bombers',
+        DB: 'bombers',
+        bombers: 'bombers',
+        SB: 'skip_bombers',
+        skip_bombers: 'skip_bombers',
+        CON: 'consumables',
+        consumables: 'consumables',
+        CI: 'combat_instructions',
+        combat_instructions: 'combat_instructions',
+        IS: 'innate',
+        innate: 'innate',
         all: 'all',
       };
       if (p && presetMap[p]) {
@@ -82,6 +106,41 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
       }
     }
   }, [fetchCatalog]);
+
+  // Sync active preset changes to URL search param (?p=CODE)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activePreset) {
+      const presetToCode: Record<string, string> = {
+        general: 'GEN',
+        survivability: 'SRV',
+        diving: 'DIV',
+        artillery: 'MB',
+        ap_shells: 'AP',
+        he_shells: 'HE',
+        sap_shells: 'SAP',
+        secondary: 'SEC',
+        sonar: 'SON',
+        torpedoes: 'TORP',
+        aa: 'AA',
+        asw: 'ASW',
+        airstrike: 'AS',
+        attack_aircraft: 'ATT',
+        torpedo_bombers: 'TB',
+        bombers: 'DB',
+        skip_bombers: 'SB',
+        consumables: 'CON',
+        combat_instructions: 'CI',
+        innate: 'IS',
+        all: 'all',
+      };
+      const code = presetToCode[activePreset] || activePreset;
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('p') !== code) {
+        url.searchParams.set('p', code);
+        window.history.replaceState({}, '', url.toString());
+      }
+    }
+  }, [activePreset]);
 
   // Compute active modifiers count
   const activeModifierCount = useMemo(() => {
