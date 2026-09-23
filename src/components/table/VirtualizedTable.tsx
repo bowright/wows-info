@@ -13,6 +13,7 @@ import {
   ArrowUp,
   ArrowDown,
   Copy,
+  Check,
   CheckSquare,
   Square,
   Zap,
@@ -20,6 +21,7 @@ import {
 import type { ModifiedShipStats, ColumnPreset, ShipClass } from '../../types';
 import { AcquisitionBadge } from '../common/AcquisitionBadge';
 import { useShipStore } from '../../stores/useShipStore';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface VirtualizedTableProps {
   data: ModifiedShipStats[];
@@ -431,6 +433,32 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   });
 
   const { rows } = table.getRowModel();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyTable = async () => {
+    const exportColumns = columns.filter((col) => col.id !== 'compare');
+    const headerRow = exportColumns.map((col) => {
+      if (typeof col.header === 'string') return col.header;
+      return col.id || '';
+    });
+
+    const tsvRows = rows.map((row) => {
+      return exportColumns.map((col) => {
+        if (!col.id) return '';
+        const val = row.getValue(col.id);
+        if (val === null || val === undefined) return '';
+        if (col.id === 'tier' && typeof val === 'number') return TIER_ROMAN[val] || val;
+        return String(val);
+      }).join('\t');
+    });
+
+    const tsv = [headerRow.join('\t'), ...tsvRows].join('\n');
+    const ok = await copyToClipboard(tsv);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Virtualizer setup
   const rowVirtualizer = useVirtualizer({
@@ -466,7 +494,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
         ref={tableContainerRef}
         className="overflow-auto flex-1 relative scrollbar-thin scrollbar-thumb-slate-700"
       >
-        <table className="w-full text-left border-collapse text-xs">
+        <table className="w-full text-left border-collapse text-xs select-text">
           {/* Table Header */}
           <thead className="sticky top-0 z-30 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 shadow-md">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -565,7 +593,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                               maxWidth: cell.column.getSize(),
                               left: leftOffset,
                             }}
-                            className={`p-2.5 whitespace-nowrap text-xs ${
+                            className={`p-2.5 whitespace-nowrap text-xs select-text ${
                               isPinned
                                 ? `sticky z-20 border-r border-slate-800/80 ${
                                     isSelected ? 'bg-slate-900/95' : 'bg-slate-950/95'
@@ -591,7 +619,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
         </table>
       </div>
 
-      {/* Table Footer: Status info */}
+      {/* Table Footer: Status info & Copy Table */}
       <div className="px-4 py-2 border-t border-slate-800 bg-slate-950 text-xs text-slate-400 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span>
@@ -602,11 +630,31 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             Click column headers to sort. Pinned columns remain fixed while scrolling.
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="text-[11px] text-slate-400">High / Optimal</span>
-          <span className="inline-block w-2 h-2 rounded-full bg-rose-400 ml-2" />
-          <span className="text-[11px] text-slate-400">Low</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleCopyTable}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition text-[11px] font-medium select-none cursor-pointer"
+            title="Copy current visible table to clipboard as TSV (tab-separated values, Excel compatible)"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-semibold">Copied TSV!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-amber-400" />
+                <span>Copy Table</span>
+              </>
+            )}
+          </button>
+
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-[11px] text-slate-400">High / Optimal</span>
+            <span className="inline-block w-2 h-2 rounded-full bg-rose-400 ml-2" />
+            <span className="text-[11px] text-slate-400">Low</span>
+          </div>
         </div>
       </div>
     </div>

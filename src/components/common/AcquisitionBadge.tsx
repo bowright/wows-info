@@ -118,7 +118,7 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
       onMouseLeave={() => setShowTooltip(false)}
     >
       <span
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-none ${badgeClasses}`}
+        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-text ${badgeClasses}`}
       >
         <IconComponent className="w-3 h-3 shrink-0" />
         <span className="truncate max-w-[130px]">{label}</span>

@@ -17,7 +17,10 @@ import {
   RotateCcw,
   Sparkles,
   ExternalLink,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { copyToClipboard } from '../utils/clipboard';
 import {
   useStatsStore,
   EnrichedShipStatRow,
@@ -141,7 +144,57 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
   } = useStatsStore();
 
   const [sorting, setSorting] = useState<SortingState>([{ id: 'winRate', desc: true }]);
+  const [copied, setCopied] = useState(false);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyTable = async () => {
+    const headers = [
+      'Rank',
+      'Ship',
+      'Tier',
+      'Class',
+      'Nation',
+      'Category',
+      'Battles',
+      'Win Rate (%)',
+      'Avg Damage',
+      'Avg Frags',
+      'PR',
+      'Survival (%)',
+      'Avg XP',
+      'Spotting Dmg',
+      'Potential Dmg',
+      'Planes Downed',
+    ];
+    const tsvRows = rows.map((row) => {
+      const s = row.original;
+      return [
+        s.rank ?? '',
+        s.dispName,
+        s.tier,
+        s.class,
+        s.nation,
+        s.category,
+        s.battles,
+        s.winRate.toFixed(1),
+        Math.round(s.damage),
+        s.frags.toFixed(2),
+        s.pr,
+        s.survivalRate.toFixed(1),
+        Math.round(s.xp),
+        Math.round(s.spottingDamage),
+        Math.round(s.potentialDamage),
+        s.planesDowned.toFixed(1),
+      ].join('\t');
+    });
+
+    const tsv = [headers.join('\t'), ...tsvRows].join('\n');
+    const ok = await copyToClipboard(tsv);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Initialize catalog and stats on mount
   useEffect(() => {
@@ -899,9 +952,9 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       {/* Main Table Area (Virtualized & Scrollable) */}
       <div
         ref={tableContainerRef}
-        className="flex-1 overflow-auto relative bg-slate-950 select-none"
+        className="flex-1 overflow-auto relative bg-slate-950 select-text"
       >
-        <table className="w-full text-left border-collapse table-fixed">
+        <table className="w-full text-left border-collapse table-fixed select-text">
           {/* Table Header */}
           <thead className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 shadow-md">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -920,7 +973,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
                         maxWidth: header.column.getSize(),
                         left: leftOffset,
                       }}
-                      className={`p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider ${
+                      className={`p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider select-none ${
                         isPinned
                           ? 'sticky z-30 bg-slate-900 border-r border-slate-800'
                           : ''
@@ -1005,7 +1058,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
                               maxWidth: cell.column.getSize(),
                               left: leftOffset,
                             }}
-                            className={`p-2.5 whitespace-nowrap text-xs ${
+                            className={`p-2.5 whitespace-nowrap text-xs select-text ${
                               isPinned
                                 ? 'sticky z-20 border-r border-slate-800 bg-slate-950/95'
                                 : ''
@@ -1047,22 +1100,43 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
           </span>
         </div>
 
-        {/* PR Tier Legend */}
-        <div className="hidden md:flex items-center gap-2 text-[10px]">
-          <span className="text-slate-500">PR Tiers:</span>
-          <span className="text-red-400 font-bold">&lt;750</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-amber-400 font-bold">750–1100</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-yellow-400 font-bold">1100–1350</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-emerald-400 font-bold">1350–1550</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-teal-400 font-bold">1550–1750</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-fuchsia-400 font-bold">1750–2100</span>
-          <span className="text-slate-600">|</span>
-          <span className="text-purple-300 font-bold">2100+</span>
+        {/* Copy Table & PR Tier Legend */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleCopyTable}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition text-[11px] font-medium select-none cursor-pointer"
+            title="Copy current visible table to clipboard as TSV (tab-separated values, Excel compatible)"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 font-semibold">Copied TSV!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-amber-400" />
+                <span>Copy Table</span>
+              </>
+            )}
+          </button>
+
+          {/* PR Tier Legend */}
+          <div className="hidden md:flex items-center gap-2 text-[10px]">
+            <span className="text-slate-500">PR Tiers:</span>
+            <span className="text-red-400 font-bold">&lt;750</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-amber-400 font-bold">750–1100</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-yellow-400 font-bold">1100–1350</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-emerald-400 font-bold">1350–1550</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-teal-400 font-bold">1550–1750</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-fuchsia-400 font-bold">1750–2100</span>
+            <span className="text-slate-600">|</span>
+            <span className="text-purple-300 font-bold">2100+</span>
+          </div>
         </div>
       </div>
     </div>
