@@ -714,10 +714,12 @@ export function parseGameParamsData() {
           type: variantObj.consumableType || variantObj.abilityType || 'Consumable',
           name: tr(variantObj.NAME) || tr(abil.NAME) || abilName,
           description: tr(variantObj.DESC) || tr(abil.DESC) || '',
+          iconKey: `consumable_${variantObj.iconIDs || abil.name}.png`,
           numConsumables: variantObj.numConsumables != null ? variantObj.numConsumables : 3,
           reloadTime: variantObj.reloadTime != null ? variantObj.reloadTime : 120,
-          workTime: variantObj.workTime != null ? variantObj.workTime : 30,
+          workTime: variantObj.workTime != null ? variantObj.workTime : (variantObj.maxCapacity || 30),
           preparationTime: variantObj.preparationTime || 0,
+          lifeCycleType: variantObj.lifeCycleType || 0,
           logic: variantObj.logic || null
         });
       }
@@ -808,7 +810,8 @@ export function parseGameParamsData() {
         reloadTime: aswData.reloadTime
       } : null,
       aircraft: aircraftData,
-      submarine: submarineData
+      submarine: submarineData,
+      consumables: abilities
     };
     catalog.push(catalogItem);
 

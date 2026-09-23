@@ -239,9 +239,10 @@ export interface CompactShipCatalogItem {
     bundleExpiry?: string | null;
     otherOffers?: AdditionalOffer[];
   };
+  consumables?: ConsumableItem[];
 }
 
-export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'secondary' | 'torpedoes' | 'aa' | 'asw' | 'all';
+export type ColumnPreset = 'general' | 'survivability' | 'artillery' | 'secondary' | 'torpedoes' | 'aa' | 'asw' | 'consumables' | 'all';
 
 
 export interface BallisticsPoint {
@@ -280,10 +281,12 @@ export interface ConsumableItem {
   type: string;
   name: string;
   description: string;
+  iconKey?: string;
   numConsumables: number;
   reloadTime: number;
   workTime: number;
   preparationTime: number;
+  lifeCycleType?: number;
   logic?: any;
 }
 

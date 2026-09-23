@@ -22,6 +22,7 @@ import type { ModifiedShipStats, ColumnPreset, ShipClass } from '../../types';
 import { AcquisitionBadge } from '../common/AcquisitionBadge';
 import { useShipStore } from '../../stores/useShipStore';
 import { copyToClipboard } from '../../utils/clipboard';
+import { ConsumableIconCell } from './ConsumableIconCell';
 
 interface VirtualizedTableProps {
   data: ModifiedShipStats[];
@@ -178,6 +179,63 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       track('aswRange', s.aswRange);
       if (s.asw) {
         track('aswReload', s.asw.reloadTime);
+      }
+
+      if (s.consumables) {
+        const dcp = s.consumables.find((c) => c.type === 'crashCrew');
+        if (dcp) track('dcpTime', dcp.workTime);
+
+        const repair = s.consumables.find((c) => c.type === 'regenCrew');
+        if (repair) {
+          track('repairTime', repair.workTime);
+          if (repair.logic?.regenerationHPSpeed) {
+            track('repairHpPct', repair.workTime * repair.logic.regenerationHPSpeed * 100);
+          }
+        }
+
+        const smoke = s.consumables.find((c) => c.type === 'smokeGenerator');
+        if (smoke) {
+          track('smokeTime', smoke.workTime);
+          if (smoke.logic?.lifeTime) track('smokeDispersion', smoke.logic.lifeTime);
+          if (smoke.logic?.radius) track('smokeRadius', smoke.logic.radius * 30);
+        }
+
+        const hydro = s.consumables.find((c) => c.type === 'sonar');
+        if (hydro) {
+          track('hydroTime', hydro.workTime);
+          if (hydro.logic?.distShip) track('hydroRange', hydro.logic.distShip * 0.03);
+        }
+
+        const radar = s.consumables.find((c) => c.type === 'rls');
+        if (radar) {
+          track('radarTime', radar.workTime);
+          if (radar.logic?.distShip) track('radarRange', radar.logic.distShip * 0.03);
+        }
+
+        const speed = s.consumables.find((c) => c.type === 'speedBoosters');
+        if (speed) {
+          track('speedTime', speed.workTime);
+          if (speed.logic?.boostCoeff) track('speedBoost', speed.logic.boostCoeff * 100);
+        }
+
+        const aux = s.consumables.find((c) => c.type === 'auxTorpBooster');
+        if (aux) track('auxTime', aux.workTime);
+
+        const mbrb = s.consumables.find((c) => c.type === 'artilleryBoosters');
+        if (mbrb) {
+          track('mbrbTime', mbrb.workTime);
+          if (mbrb.logic?.boostCoeff) track('mbrbReload', Math.abs((mbrb.logic.boostCoeff - 1) * 100));
+        }
+
+        const hydrophone = s.consumables.find((c) => c.type === 'hydrophone');
+        if (hydrophone && hydrophone.logic?.hydrophoneWaveRadius) {
+          track('hydrophoneRange', hydrophone.logic.hydrophoneWaveRadius / 1000);
+        }
+
+        const surv = s.consumables.find((c) => c.type === 'submarineLocator');
+        if (surv && surv.logic?.distShip) {
+          track('survRange', surv.logic.distShip * 0.03);
+        }
       }
     }
 
@@ -341,6 +399,32 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       );
     };
 
+    const addIconCol = (
+      id: string,
+      header: string,
+      type: string,
+      size = 80
+    ) => {
+      metricCols.push(
+        columnHelper.accessor(
+          (row) => {
+            const c = row.consumables?.find((item) => item.type === type);
+            if (!c) return -1;
+            return c.numConsumables > 0 ? c.numConsumables : 999;
+          },
+          {
+            id,
+            header,
+            cell: ({ row }) => {
+              const c = row.original.consumables?.find((item) => item.type === type);
+              return <ConsumableIconCell consumable={c} />;
+            },
+            size,
+          }
+        )
+      );
+    };
+
     // General preset columns
     if (activePreset === 'general' || activePreset === 'all') {
       addCol('health', 'Health', (s) => s.health, (v) => v.toLocaleString(), true, 80);
@@ -418,6 +502,250 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
     if (activePreset === 'asw' || activePreset === 'all') {
       addCol('aswRange', 'ASW Range', (s) => s.aswRange, (v) => `${v.toFixed(1)} km`, true, 90);
       addCol('aswReload', activePreset === 'all' ? 'ASW Reload' : 'Reload', (s) => s.asw?.reloadTime, (v) => `${v}s`, false, 85);
+    }
+
+    // Consumables preset columns (matching shiptool.st p=CON)
+    if (activePreset === 'consumables' || activePreset === 'all') {
+      const isConsumablePreset = activePreset === 'consumables';
+      // Dynamic hideable check if in consumables preset: only show column if at least one visible ship has that ability
+      const hasType = (t: string) => !isConsumablePreset || data.some((s) => s.consumables?.some((c) => c.type === t));
+
+      // 1. Damage Control Party
+      if (hasType('crashCrew')) {
+        addIconCol('dcp', 'Damage con.', 'crashCrew', 85);
+        addCol(
+          'dcpTime',
+          isConsumablePreset ? 'Time' : 'DCP Time',
+          (s) => s.consumables?.find((c) => c.type === 'crashCrew')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+      }
+
+      // 2. Repair Party
+      if (hasType('regenCrew')) {
+        addIconCol('repair', 'Repair party', 'regenCrew', 85);
+        addCol(
+          'repairTime',
+          isConsumablePreset ? 'Time' : 'Repair Time',
+          (s) => s.consumables?.find((c) => c.type === 'regenCrew')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'repairHpPct',
+          'Repair %',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'regenCrew');
+            return c?.logic?.regenerationHPSpeed
+              ? Math.round(c.workTime * c.logic.regenerationHPSpeed * 1000) / 10
+              : null;
+          },
+          (v) => `${v}%`,
+          true,
+          80
+        );
+      }
+
+      // 3. Smoke Generator
+      if (hasType('smokeGenerator')) {
+        addIconCol('smoke', 'Smoke', 'smokeGenerator', 80);
+        addCol(
+          'smokeTime',
+          isConsumablePreset ? 'Time' : 'Smoke Time',
+          (s) => s.consumables?.find((c) => c.type === 'smokeGenerator')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'smokeDispersion',
+          'Dispersion',
+          (s) => s.consumables?.find((c) => c.type === 'smokeGenerator')?.logic?.lifeTime,
+          (v) => `${v}s`,
+          true,
+          85
+        );
+        addCol(
+          'smokeRadius',
+          'Radius',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'smokeGenerator');
+            return c?.logic?.radius ? Math.round(c.logic.radius * 30) : null;
+          },
+          (v) => `${v}m`,
+          true,
+          80
+        );
+      }
+
+      // 4. Hydroacoustic Search
+      if (hasType('sonar')) {
+        addIconCol('hydro', 'Hydro', 'sonar', 80);
+        addCol(
+          'hydroTime',
+          isConsumablePreset ? 'Time' : 'Hydro Time',
+          (s) => s.consumables?.find((c) => c.type === 'sonar')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'hydroRange',
+          isConsumablePreset ? 'Range' : 'Hydro Range',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'sonar');
+            return c?.logic?.distShip ? Math.round(c.logic.distShip * 30 / 100) / 10 : null;
+          },
+          (v) => `${v.toFixed(1)} km`,
+          true,
+          85
+        );
+      }
+
+      // 5. Surveillance Radar
+      if (hasType('rls')) {
+        addIconCol('radar', 'Radar', 'rls', 80);
+        addCol(
+          'radarTime',
+          isConsumablePreset ? 'Time' : 'Radar Time',
+          (s) => s.consumables?.find((c) => c.type === 'rls')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'radarRange',
+          isConsumablePreset ? 'Range' : 'Radar Range',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'rls');
+            return c?.logic?.distShip ? Math.round(c.logic.distShip * 30 / 100) / 10 : null;
+          },
+          (v) => `${v.toFixed(1)} km`,
+          true,
+          85
+        );
+      }
+
+      // 6. Engine Boost
+      if (hasType('speedBoosters')) {
+        addIconCol('speed', 'Engine boost', 'speedBoosters', 85);
+        addCol(
+          'speedTime',
+          isConsumablePreset ? 'Time' : 'Speed Time',
+          (s) => s.consumables?.find((c) => c.type === 'speedBoosters')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'speedBoost',
+          'Speed',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'speedBoosters');
+            return c?.logic?.boostCoeff ? Math.round(c.logic.boostCoeff * 100) : null;
+          },
+          (v) => `+${v}%`,
+          true,
+          80
+        );
+      }
+
+      // 7. Auxiliary
+      if (hasType('auxTorpBooster')) {
+        addIconCol('aux', 'Auxiliary', 'auxTorpBooster', 80);
+        addCol(
+          'auxTime',
+          isConsumablePreset ? 'Time' : 'Aux Time',
+          (s) => s.consumables?.find((c) => c.type === 'auxTorpBooster')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+      }
+
+      // 8. Main Battery Reload Booster (MBRB)
+      if (hasType('artilleryBoosters')) {
+        addIconCol('mbrb', 'MBRB', 'artilleryBoosters', 80);
+        addCol(
+          'mbrbTime',
+          isConsumablePreset ? 'Time' : 'MBRB Time',
+          (s) => s.consumables?.find((c) => c.type === 'artilleryBoosters')?.workTime,
+          (v) => `${v}s`,
+          true,
+          75
+        );
+        addCol(
+          'mbrbReload',
+          'Reload',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'artilleryBoosters');
+            return c?.logic?.boostCoeff ? Math.round((c.logic.boostCoeff - 1) * 100) : null;
+          },
+          (v) => `${v}%`,
+          false,
+          80
+        );
+      }
+
+      // 9. Torpedo Reload Booster (TRB)
+      if (hasType('torpedoReloader')) {
+        addIconCol('trb', 'TRB', 'torpedoReloader', 80);
+      }
+
+      // 10. Catapult Fighter
+      if (hasType('fighter')) {
+        addIconCol('fighter', 'Fighters', 'fighter', 80);
+      }
+
+      // 11. Spotting Aircraft
+      if (hasType('scout')) {
+        addIconCol('spotter', 'Spotter', 'scout', 80);
+      }
+
+      // 12. Hydrophone
+      if (hasType('hydrophone')) {
+        addIconCol('hydrophone', 'Hydrophone', 'hydrophone', 85);
+        addCol(
+          'hydrophoneRange',
+          isConsumablePreset ? 'Range' : 'HydP. Range',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'hydrophone');
+            return c?.logic?.hydrophoneWaveRadius ? Math.round(c.logic.hydrophoneWaveRadius / 100) / 10 : null;
+          },
+          (v) => `${v.toFixed(1)} km`,
+          true,
+          85
+        );
+      }
+
+      // 13. Submarine Surveillance
+      if (hasType('submarineLocator')) {
+        addIconCol('submarineSurveillance', 'Sub. surveillance', 'submarineLocator', 95);
+        addCol(
+          'submarineSurveillanceRange',
+          isConsumablePreset ? 'Range' : 'Sub Surv. Range',
+          (s) => {
+            const c = s.consumables?.find((item) => item.type === 'submarineLocator');
+            return c?.logic?.distShip ? Math.round(c.logic.distShip * 30 / 100) / 10 : null;
+          },
+          (v) => `${v.toFixed(1)} km`,
+          true,
+          85
+        );
+      }
+
+      // 14. Enhanced Rudder
+      if (hasType('fastRudders')) {
+        addIconCol('fastRudders', 'Enhanced rudder', 'fastRudders', 90);
+      }
+
+      // 15. Reserve Battery
+      if (hasType('subsEnergyFreeze')) {
+        addIconCol('subsEnergyFreeze', 'Res. battery', 'subsEnergyFreeze', 85);
+      }
     }
 
     return [...pinned, ...metricCols];

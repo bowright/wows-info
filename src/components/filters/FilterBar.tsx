@@ -11,6 +11,7 @@ import {
   Flame,
   Radio,
   SlidersHorizontal,
+  Package,
 } from 'lucide-react';
 import { useShipStore } from '../../stores/useShipStore';
 import type { ColumnPreset, ShipClass } from '../../types';
@@ -72,6 +73,7 @@ const PRESETS: { id: ColumnPreset; label: string; icon: React.ComponentType<{ cl
   { id: 'torpedoes', label: 'Torpedoes', icon: Flame },
   { id: 'aa', label: 'AA Defense', icon: Radio },
   { id: 'asw', label: 'ASW', icon: Layers },
+  { id: 'consumables', label: 'Consumables', icon: Package },
   { id: 'all', label: 'All Columns', icon: Layers },
 ];
 

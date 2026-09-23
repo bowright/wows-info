@@ -29,9 +29,58 @@ export const ShipParametersView: React.FC<ShipParametersViewProps> = ({ onNaviga
   const activeBuild = useShipStore((state) => state.activeBuild);
   const getFilteredShips = useShipStore((state) => state.getFilteredShips);
 
-  // Load catalog on mount if empty
+  // Load catalog on mount if empty & parse URL query params
   useEffect(() => {
     fetchCatalog();
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const p = params.get('p') || params.get('preset');
+      const presetMap: Record<string, any> = {
+        CON: 'consumables',
+        consumables: 'consumables',
+        SRV: 'survivability',
+        survivability: 'survivability',
+        GEN: 'general',
+        general: 'general',
+        MB: 'artillery',
+        artillery: 'artillery',
+        SEC: 'secondary',
+        secondary: 'secondary',
+        TORP: 'torpedoes',
+        torpedoes: 'torpedoes',
+        AA: 'aa',
+        aa: 'aa',
+        ASW: 'asw',
+        asw: 'asw',
+        all: 'all',
+      };
+      if (p && presetMap[p]) {
+        useShipStore.getState().setActivePreset(presetMap[p]);
+      }
+
+      const ty = params.get('ty');
+      if (ty) {
+        const classMap: Record<string, string> = {
+          C: 'Cruiser',
+          D: 'Destroyer',
+          B: 'Battleship',
+          A: 'AirCarrier',
+          S: 'Submarine',
+        };
+        if (classMap[ty]) {
+          useShipStore.setState({ selectedClasses: [classMap[ty]] });
+        }
+      }
+
+      const t = params.get('t');
+      if (t) {
+        const tierNum = parseInt(t, 10);
+        if (!isNaN(tierNum)) {
+          useShipStore.setState({ selectedTiers: [tierNum] });
+        }
+      }
+    }
   }, [fetchCatalog]);
 
   // Compute active modifiers count
