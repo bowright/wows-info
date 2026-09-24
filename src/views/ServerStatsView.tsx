@@ -27,6 +27,7 @@ import {
 } from '../stores/useStatsStore';
 import { useShipStore } from '../stores/useShipStore';
 import { AcquisitionBadge } from '../components/common/AcquisitionBadge';
+import { PINNED_COLUMN_WIDTHS } from '../components/table/pinnedColumnWidths';
 import { getPRTier, formatPR } from '../utils/prCalculator';
 import type { ShipClass, StatsServer, StatsTimespan, SkillBracket } from '../types';
 
@@ -286,7 +287,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       columnHelper.display({
         id: 'rank',
         header: '#',
-        size: 44,
+        size: PINNED_COLUMN_WIDTHS.select,
         cell: (info) => (
           <span className="text-slate-500 font-mono text-[11px]">
             {info.row.index + 1}
@@ -298,7 +299,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       columnHelper.accessor('tier', {
         id: 'tier',
         header: 'Tier',
-        size: 50,
+        size: PINNED_COLUMN_WIDTHS.tier,
         cell: (info) => (
           <span className="font-mono font-bold text-amber-300 text-xs">
             {TIER_ROMAN[info.getValue()] || info.getValue()}
@@ -310,7 +311,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       columnHelper.accessor('class', {
         id: 'class',
         header: 'Class',
-        size: 60,
+        size: PINNED_COLUMN_WIDTHS.shipClass,
         cell: (info) => {
           const cfg = CLASS_CONFIG[info.getValue()] || CLASS_CONFIG.Cruiser;
           return (
@@ -328,19 +329,25 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       columnHelper.accessor('nation', {
         id: 'nation',
         header: 'Nation',
-        size: 65,
-        cell: (info) => (
-          <span className="font-mono text-slate-400 uppercase text-[11px] truncate block" title={info.getValue()}>
-            {info.getValue().replace('_', ' ')}
-          </span>
-        ),
+        size: PINNED_COLUMN_WIDTHS.nation,
+        cell: (info) => {
+          const nation = info.getValue();
+          const label = nation.toLowerCase() === 'united_kingdom'
+            ? 'UK'
+            : nation.replace('_', ' ');
+          return (
+            <span className="font-mono text-slate-400 uppercase text-[11px] truncate block" title={nation}>
+              {label}
+            </span>
+          );
+        },
       }),
 
       // 4. Ship Name (clickable)
       columnHelper.accessor('dispName', {
         id: 'dispName',
         header: 'Ship Name',
-        size: 160,
+        size: PINNED_COLUMN_WIDTHS.shipName,
         cell: (info) => {
           const ship = info.row.original;
           return (
@@ -362,7 +369,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
       columnHelper.display({
         id: 'acquisition',
         header: 'Acquisition',
-        size: 130,
+        size: PINNED_COLUMN_WIDTHS.acquisition,
         cell: (info) => {
           const ship = info.row.original;
           const catalogShip = catalogMap.get(ship.shipId);

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,6 +24,7 @@ import { AcquisitionBadge } from '../common/AcquisitionBadge';
 import { useShipStore } from '../../stores/useShipStore';
 import { copyToClipboard } from '../../utils/clipboard';
 import { ConsumableIconCell } from './ConsumableIconCell';
+import { PINNED_COLUMN_WIDTHS } from './pinnedColumnWidths';
 
 interface VirtualizedTableProps {
   data: ModifiedShipStats[];
@@ -59,6 +60,7 @@ const NATION_LABELS: Record<string, string> = {
   germany: 'DE',
   ussr: 'RU',
   uk: 'UK',
+  united_kingdom: 'UK',
   france: 'FR',
   italy: 'IT',
   pan_asia: 'PA',
@@ -88,6 +90,7 @@ function getHeatmapColor(
 }
 
 const columnHelper = createColumnHelper<ModifiedShipStats>();
+const compactMetricWidth = (size: number) => Math.max(80, Math.round(size * 0.9));
 
 export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   data,
@@ -96,6 +99,11 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const horizontalScrollRef = useRef<HTMLDivElement>(null);
+  const [horizontalScrollMetrics, setHorizontalScrollMetrics] = useState({ contentWidth: 0, viewportWidth: 0 });
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1280 : window.innerWidth
+  );
 
   const selectedShipIds = useShipStore((state) => state.selectedShipIds);
   const toggleCompareShip = useShipStore((state) => state.toggleCompareShip);
@@ -447,7 +455,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             </button>
           );
         },
-        size: 38,
+        size: PINNED_COLUMN_WIDTHS.select,
       }),
 
       columnHelper.accessor('tier', {
@@ -458,7 +466,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             {TIER_ROMAN[info.getValue()] || info.getValue()}
           </span>
         ),
-        size: 48,
+        size: PINNED_COLUMN_WIDTHS.tier,
       }),
 
       columnHelper.accessor('class', {
@@ -476,7 +484,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             </span>
           );
         },
-        size: 58,
+        size: PINNED_COLUMN_WIDTHS.shipClass,
       }),
 
       columnHelper.accessor('nation', {
@@ -490,7 +498,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             </span>
           );
         },
-        size: 65,
+        size: PINNED_COLUMN_WIDTHS.nation,
       }),
 
       columnHelper.accessor('dispName', {
@@ -524,7 +532,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             </div>
           );
         },
-        size: 190,
+        size: PINNED_COLUMN_WIDTHS.shipName,
       }),
 
       columnHelper.accessor((row) => row.acquisition?.category || 'Tech Tree', {
@@ -536,7 +544,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
             applyCoupons={applyCoupons}
           />
         ),
-        size: 170,
+        size: PINNED_COLUMN_WIDTHS.acquisition,
       }),
     ];
 
@@ -557,15 +565,21 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
           {
             id,
             header,
+            sortingFn: id === 'artDesc'
+              ? (rowA, rowB) =>
+                  (rowA.original.artillery?.caliberMm ?? 0) -
+                  (rowB.original.artillery?.caliberMm ?? 0)
+              : undefined,
             cell: (info) => {
               const val = info.getValue() as number | string | null | undefined;
               if (val == null || val === '' || (typeof val === 'number' && isNaN(val))) {
                 return <span className="text-slate-600 font-mono">—</span>;
               }
               if (typeof val === 'string' && isNaN(Number(val))) {
+                const displayValue = format(val) ?? val;
                 return (
-                  <span className="font-mono text-xs text-slate-200">
-                    {format(val) ?? val}
+                  <span className="block max-w-full truncate font-mono text-xs text-slate-200" title={String(displayValue)}>
+                    {displayValue}
                   </span>
                 );
               }
@@ -574,13 +588,14 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
               const colorClass = range
                 ? getHeatmapColor(numVal, range.min, range.max, higherIsBetter)
                 : 'text-slate-200';
+              const displayValue = format(val) ?? '—';
               return (
-                <span className={`font-mono text-xs ${colorClass}`}>
-                  {format(val) ?? '—'}
+                <span className={`block max-w-full truncate font-mono text-xs ${colorClass}`} title={String(displayValue)}>
+                  {displayValue}
                 </span>
               );
             },
-            size,
+            size: compactMetricWidth(size),
           }
         )
       );
@@ -606,7 +621,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
               const c = row.original.consumables?.find((item) => item.type === type);
               return <ConsumableIconCell consumable={c} />;
             },
-            size,
+            size: compactMetricWidth(size),
           }
         )
       );
@@ -1264,8 +1279,18 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       );
     }
 
+    const pinnedWidth = Object.values(PINNED_COLUMN_WIDTHS).reduce((total, width) => total + width, 0);
+    const availableMetricWidth = Math.max(0, viewportWidth - pinnedWidth - 8 - metricCols.length * 3);
+    const totalMetricWidth = metricCols.reduce((total, column) => total + (column.size || 80), 0);
+    const scale = totalMetricWidth > availableMetricWidth && availableMetricWidth > 0
+      ? availableMetricWidth / totalMetricWidth
+      : 1;
+    for (const column of metricCols) {
+      column.size = Math.max(74, Math.round((column.size || 80) * scale));
+    }
+
     return [...pinned, ...metricCols];
-  }, [activePreset, applyCoupons, selectedShipIds, statRanges, toggleCompareShip]);
+  }, [activePreset, applyCoupons, selectedShipIds, statRanges, toggleCompareShip, viewportWidth]);
 
   const table = useReactTable({
     data,
@@ -1275,6 +1300,37 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+
+  useEffect(() => {
+    const scrollContainer = tableContainerRef.current;
+    const tableElement = scrollContainer?.querySelector('table');
+    if (!scrollContainer || !tableElement) return;
+
+    const updateScrollMetrics = () => {
+      const viewportWidth = scrollContainer.clientWidth;
+      setViewportWidth(window.innerWidth);
+      setHorizontalScrollMetrics((current) => {
+        const contentWidth = Math.max(tableElement.scrollWidth, viewportWidth);
+        return current.contentWidth === contentWidth && current.viewportWidth === viewportWidth
+          ? current
+          : { contentWidth, viewportWidth };
+      });
+    };
+
+    updateScrollMetrics();
+    window.addEventListener('resize', updateScrollMetrics);
+    return () => window.removeEventListener('resize', updateScrollMetrics);
+  }, [columns, data.length]);
+
+  const syncHorizontalScroll = (source: HTMLDivElement, target: HTMLDivElement | null) => {
+    if (!target) return;
+    const sourceRange = source.scrollWidth - source.clientWidth;
+    const targetRange = target.scrollWidth - target.clientWidth;
+    const targetScrollLeft = sourceRange > 0 ? (source.scrollLeft / sourceRange) * targetRange : 0;
+    if (Math.abs(target.scrollLeft - targetScrollLeft) > 1) {
+      target.scrollLeft = targetScrollLeft;
+    }
+  };
 
   const { rows } = table.getRowModel();
   const [copied, setCopied] = useState(false);
@@ -1322,23 +1378,37 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       : 0;
 
   // Cumulative left offsets for pinned columns (first 6 columns)
-  const pinnedWidths = [38, 48, 58, 65, 190, 155];
   const pinnedOffsets = useMemo(() => {
-    const offsets = [0];
-    for (let i = 0; i < pinnedWidths.length - 1; i++) {
-      offsets.push(offsets[i] + pinnedWidths[i]);
-    }
-    return offsets;
-  }, []);
+    let left = 0;
+    return columns.slice(0, 6).map((column) => {
+      const offset = left;
+      left += column.size || 80;
+      return offset;
+    });
+  }, [columns]);
 
   return (
     <div className="w-full border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-xl flex flex-col h-[720px]">
+      {horizontalScrollMetrics.contentWidth > horizontalScrollMetrics.viewportWidth + 1 && (
+        <div
+          ref={horizontalScrollRef}
+          className="h-3.5 shrink-0 overflow-x-auto overflow-y-hidden border-b border-slate-800/70 scrollbar-thin scrollbar-thumb-slate-700"
+          style={{ width: `${horizontalScrollMetrics.viewportWidth}px` }}
+          role="region"
+          aria-label="Horizontal parameters scrollbar"
+          tabIndex={0}
+          onScroll={(event) => syncHorizontalScroll(event.currentTarget, tableContainerRef.current)}
+        >
+          <div className="h-px" style={{ width: `${horizontalScrollMetrics.contentWidth}px` }} />
+        </div>
+      )}
       {/* Table Scroll Container */}
       <div
         ref={tableContainerRef}
         className="overflow-auto flex-1 relative scrollbar-thin scrollbar-thumb-slate-700"
+        onScroll={(event) => syncHorizontalScroll(event.currentTarget, horizontalScrollRef.current)}
       >
-        <table className="w-full text-left border-collapse text-xs select-text">
+        <table className="w-max min-w-full table-fixed text-left border-collapse text-xs select-text">
           {/* Table Header */}
           <thead className="sticky top-0 z-30 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 shadow-md">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -1357,7 +1427,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                         maxWidth: header.getSize(),
                         left: leftOffset,
                       }}
-                      className={`p-2.5 whitespace-nowrap select-none ${
+                      className={`px-1.5 py-2 whitespace-nowrap select-none ${
                         isPinned
                           ? 'sticky z-30 bg-slate-950 border-r border-slate-800/80'
                           : 'bg-slate-950'
@@ -1367,12 +1437,17 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                         <div
                           {...{
                             className: header.column.getCanSort()
-                              ? 'flex items-center gap-1 cursor-pointer hover:text-white transition'
-                              : 'flex items-center gap-1',
+                              ? 'flex min-w-0 items-center gap-1 cursor-pointer hover:text-white transition'
+                              : 'flex min-w-0 items-center gap-1',
                             onClick: header.column.getToggleSortingHandler(),
                           }}
                         >
-                          <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                          <span
+                            className="min-w-0 truncate"
+                            title={typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header : undefined}
+                          >
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </span>
                           {header.column.getCanSort() && (
                             <span className="text-slate-500">
                               {isSorted === 'asc' ? (
@@ -1437,7 +1512,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                               maxWidth: cell.column.getSize(),
                               left: leftOffset,
                             }}
-                            className={`p-2.5 whitespace-nowrap text-xs select-text ${
+                            className={`px-1 py-2.5 whitespace-nowrap text-xs select-text ${
                               isPinned
                                 ? `sticky z-20 hover:z-40 border-r border-slate-800/80 ${
                                     isSelected ? 'bg-slate-900/95' : 'bg-slate-950/95'
