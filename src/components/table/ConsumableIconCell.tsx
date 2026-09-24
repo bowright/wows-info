@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ConsumableItem } from '../../types';
+
+interface TooltipPosition {
+  left: number;
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+}
 
 interface ConsumableIconCellProps {
   consumable?: ConsumableItem | null;
 }
 
 export const ConsumableIconCell: React.FC<ConsumableIconCellProps> = ({ consumable }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipAnchorRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
 
   if (!consumable) {
     return <span className="text-slate-600 font-mono">—</span>;
@@ -56,15 +65,30 @@ export const ConsumableIconCell: React.FC<ConsumableIconCellProps> = ({ consumab
       ? `${Math.round((consumable.logic.boostCoeff - 1) * 100)}%`
       : null;
 
-  const titleFallback = `${consumable.name} (${
-    isInfinite ? '∞' : charges + ' charges'
-  }) | Action: ${consumable.workTime}s | Reload: ${consumable.reloadTime}s`;
+  const titleFallback = `${consumable.name} (${isInfinite ? '∞' : charges + ' charges'}) | Action: ${consumable.workTime}s | Reload: ${consumable.reloadTime}s`;
+
+  const showTooltip = () => {
+    const bounds = tooltipAnchorRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+
+    const width = 256;
+    const aboveSpace = bounds.top - 12;
+    const belowSpace = window.innerHeight - bounds.bottom - 12;
+    const showAbove = aboveSpace > belowSpace;
+    const left = Math.max(8, Math.min(bounds.left + (bounds.width - width) / 2, window.innerWidth - width - 8));
+    const position = showAbove
+      ? { left, bottom: window.innerHeight - bounds.top + 6, maxHeight: Math.max(120, aboveSpace - 8) }
+      : { left, top: bounds.bottom + 6, maxHeight: Math.max(120, belowSpace - 8) };
+
+    setTooltipPosition(position);
+  };
 
   return (
     <div
-      className="relative inline-flex items-center justify-center select-none"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      ref={tooltipAnchorRef}
+      className="inline-flex items-center justify-center select-none"
+      onMouseEnter={showTooltip}
+      onMouseLeave={() => setTooltipPosition(null)}
       title={titleFallback}
     >
       <div className="relative w-7 h-7 flex items-center justify-center rounded bg-slate-800/90 border border-slate-700/80 hover:border-amber-400/70 p-0.5 transition shadow-sm group">
@@ -82,8 +106,16 @@ export const ConsumableIconCell: React.FC<ConsumableIconCellProps> = ({ consumab
       </div>
 
       {/* Styled Rich Tooltip */}
-      {showTooltip && (
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 w-64 p-3 rounded-lg bg-slate-900 text-slate-100 shadow-2xl border border-slate-700 text-xs pointer-events-none whitespace-normal">
+      {tooltipPosition && createPortal(
+        <div
+          className="fixed z-[100] w-64 overflow-y-auto p-3 rounded-lg bg-slate-900 text-slate-100 shadow-2xl border border-slate-700 text-xs pointer-events-none whitespace-normal"
+          style={{
+            left: tooltipPosition.left,
+            top: tooltipPosition.top,
+            bottom: tooltipPosition.bottom,
+            maxHeight: tooltipPosition.maxHeight,
+          }}
+        >
           <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-800">
             <img src={iconSrc} alt="" className="w-6 h-6 object-contain shrink-0" />
             <div className="overflow-hidden">
@@ -156,7 +188,8 @@ export const ConsumableIconCell: React.FC<ConsumableIconCellProps> = ({ consumab
               {consumable.description}
             </p>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

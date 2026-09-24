@@ -7,7 +7,7 @@ import {
   createColumnHelper,
   SortingState,
 } from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import {
   ArrowUpDown,
   ArrowUp,
@@ -91,6 +91,11 @@ function getHeatmapColor(
 
 const columnHelper = createColumnHelper<ModifiedShipStats>();
 const compactMetricWidth = (size: number) => Math.max(80, Math.round(size * 0.9));
+const minHeaderWidth = (header: unknown) => {
+  if (typeof header !== 'string') return 74;
+  const longestWord = Math.max(...header.split(/\s+/).map((word) => word.length));
+  return Math.max(74, Math.ceil(longestWord * 6.5 + 28));
+};
 
 export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   data,
@@ -99,11 +104,13 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
 }) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const tableHeaderRef = useRef<HTMLTableSectionElement>(null);
   const horizontalScrollRef = useRef<HTMLDivElement>(null);
   const [horizontalScrollMetrics, setHorizontalScrollMetrics] = useState({ contentWidth: 0, viewportWidth: 0 });
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1280 : window.innerWidth
   );
+  const [scrollMargin, setScrollMargin] = useState(0);
 
   const selectedShipIds = useShipStore((state) => state.selectedShipIds);
   const toggleCompareShip = useShipStore((state) => state.toggleCompareShip);
@@ -1281,12 +1288,15 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
 
     const pinnedWidth = Object.values(PINNED_COLUMN_WIDTHS).reduce((total, width) => total + width, 0);
     const availableMetricWidth = Math.max(0, viewportWidth - pinnedWidth - 8 - metricCols.length * 3);
+    const minimumWidths = metricCols.map((column) => minHeaderWidth(column.header));
     const totalMetricWidth = metricCols.reduce((total, column) => total + (column.size || 80), 0);
-    const scale = totalMetricWidth > availableMetricWidth && availableMetricWidth > 0
-      ? availableMetricWidth / totalMetricWidth
+    const minimumMetricWidth = minimumWidths.reduce((total, width) => total + width, 0);
+    const shrinkableWidth = Math.max(0, totalMetricWidth - minimumMetricWidth);
+    const scale = totalMetricWidth > availableMetricWidth && availableMetricWidth > 0 && shrinkableWidth > 0
+      ? Math.max(0, Math.min(1, (availableMetricWidth - minimumMetricWidth) / shrinkableWidth))
       : 1;
-    for (const column of metricCols) {
-      column.size = Math.max(74, Math.round((column.size || 80) * scale));
+    for (const [index, column] of metricCols.entries()) {
+      column.size = Math.max(minimumWidths[index], Math.round(minimumWidths[index] + ((column.size || 80) - minimumWidths[index]) * scale));
     }
 
     return [...pinned, ...metricCols];
@@ -1321,6 +1331,21 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
     window.addEventListener('resize', updateScrollMetrics);
     return () => window.removeEventListener('resize', updateScrollMetrics);
   }, [columns, data.length]);
+
+  useEffect(() => {
+    const scrollContainer = tableContainerRef.current;
+    const tableHeader = tableHeaderRef.current;
+    if (!scrollContainer || !tableHeader) return;
+
+    const updateScrollMargin = () => {
+      const margin = scrollContainer.getBoundingClientRect().top + window.scrollY + tableHeader.getBoundingClientRect().height;
+      setScrollMargin((current) => Math.abs(current - margin) < 1 ? current : margin);
+    };
+
+    updateScrollMargin();
+    window.addEventListener('resize', updateScrollMargin);
+    return () => window.removeEventListener('resize', updateScrollMargin);
+  }, [columns, data.length, horizontalScrollMetrics.contentWidth, viewportWidth]);
 
   const syncHorizontalScroll = (source: HTMLDivElement, target: HTMLDivElement | null) => {
     if (!target) return;
@@ -1361,20 +1386,22 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   };
 
   // Virtualizer setup
-  const rowVirtualizer = useVirtualizer({
+  const rowVirtualizer = useWindowVirtualizer({
     count: rows.length,
-    getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 40,
     overscan: 20,
+    scrollMargin,
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
 
-  const paddingTop = virtualRows.length > 0 ? virtualRows[0]?.start || 0 : 0;
+  const paddingTop = virtualRows.length > 0
+    ? Math.max(0, virtualRows[0].start - scrollMargin)
+    : 0;
   const paddingBottom =
     virtualRows.length > 0
-      ? totalSize - (virtualRows[virtualRows.length - 1]?.end || 0)
+      ? Math.max(0, totalSize - (virtualRows[virtualRows.length - 1].end - scrollMargin))
       : 0;
 
   // Cumulative left offsets for pinned columns (first 6 columns)
@@ -1388,11 +1415,11 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
   }, [columns]);
 
   return (
-    <div className="w-full border border-slate-800 rounded-xl overflow-hidden bg-slate-900/60 shadow-xl flex flex-col h-[720px]">
+    <div className="w-full border border-slate-800 rounded-xl bg-slate-900/60 shadow-xl flex flex-col">
       {horizontalScrollMetrics.contentWidth > horizontalScrollMetrics.viewportWidth + 1 && (
         <div
           ref={horizontalScrollRef}
-          className="h-3.5 shrink-0 overflow-x-auto overflow-y-hidden border-b border-slate-800/70 scrollbar-thin scrollbar-thumb-slate-700"
+          className="sticky top-[53px] z-40 h-3.5 overflow-x-auto overflow-y-hidden border-b border-slate-800/70 bg-slate-900/95 scrollbar-thin scrollbar-thumb-slate-700"
           style={{ width: `${horizontalScrollMetrics.viewportWidth}px` }}
           role="region"
           aria-label="Horizontal parameters scrollbar"
@@ -1405,12 +1432,16 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
       {/* Table Scroll Container */}
       <div
         ref={tableContainerRef}
-        className="overflow-auto flex-1 relative scrollbar-thin scrollbar-thumb-slate-700"
+        className="relative overflow-x-auto overflow-y-clip scrollbar-thin scrollbar-thumb-slate-700"
         onScroll={(event) => syncHorizontalScroll(event.currentTarget, horizontalScrollRef.current)}
       >
         <table className="w-max min-w-full table-fixed text-left border-collapse text-xs select-text">
           {/* Table Header */}
-          <thead className="sticky top-0 z-30 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 shadow-md">
+          <thead
+            ref={tableHeaderRef}
+            className="sticky z-30 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 shadow-md"
+            style={{ top: horizontalScrollMetrics.contentWidth > horizontalScrollMetrics.viewportWidth + 1 ? '67px' : '53px' }}
+          >
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header, index) => {
@@ -1427,7 +1458,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                         maxWidth: header.getSize(),
                         left: leftOffset,
                       }}
-                      className={`px-1.5 py-2 whitespace-nowrap select-none ${
+                      className={`px-1.5 py-2 whitespace-normal select-none ${
                         isPinned
                           ? 'sticky z-30 bg-slate-950 border-r border-slate-800/80'
                           : 'bg-slate-950'
@@ -1443,7 +1474,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                           }}
                         >
                           <span
-                            className="min-w-0 truncate"
+                            className="min-w-0 break-words"
                             title={typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header : undefined}
                           >
                             {flexRender(header.column.columnDef.header, header.getContext())}

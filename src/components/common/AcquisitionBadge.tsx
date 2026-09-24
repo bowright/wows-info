@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CompactShipCatalogItem } from '../../types';
 import {
   Gem,
@@ -17,6 +18,13 @@ interface AcquisitionBadgeProps {
   applyCoupons?: boolean;
 }
 
+interface TooltipPosition {
+  left: number;
+  top?: number;
+  bottom?: number;
+  maxHeight: number;
+}
+
 const formatCompact = (val: number | null | undefined): string => {
   if (val == null) return '';
   if (val >= 1000) {
@@ -30,7 +38,24 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
   acquisition,
   applyCoupons = false,
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipAnchorRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+
+  const showTooltip = () => {
+    const bounds = tooltipAnchorRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+
+    const width = 288;
+    const aboveSpace = bounds.top - 12;
+    const belowSpace = window.innerHeight - bounds.bottom - 12;
+    const showAbove = aboveSpace > belowSpace;
+    const left = Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8));
+    const position = showAbove
+      ? { left, bottom: window.innerHeight - bounds.top + 6, maxHeight: Math.max(120, aboveSpace - 8) }
+      : { left, top: bounds.bottom + 6, maxHeight: Math.max(120, belowSpace - 8) };
+
+    setTooltipPosition(position);
+  };
 
   if (!acquisition) {
     return (
@@ -158,9 +183,10 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
 
   return (
     <div
-      className="relative inline-block"
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      ref={tooltipAnchorRef}
+      className="inline-block"
+      onMouseEnter={showTooltip}
+      onMouseLeave={() => setTooltipPosition(null)}
     >
       <span
         className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-text ${badgeClasses}`}
@@ -177,8 +203,16 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
       </span>
 
       {/* Popover / Tooltip */}
-      {showTooltip && (
-        <div className="absolute left-0 bottom-full mb-1.5 z-50 w-72 p-3 bg-slate-900 text-slate-100 rounded-lg shadow-2xl border border-slate-700 text-xs pointer-events-none">
+      {tooltipPosition && createPortal(
+        <div
+          className="fixed z-[100] w-72 overflow-y-auto p-3 bg-slate-900 text-slate-100 rounded-lg shadow-2xl border border-slate-700 text-xs pointer-events-none"
+          style={{
+            left: tooltipPosition.left,
+            top: tooltipPosition.top,
+            bottom: tooltipPosition.bottom,
+            maxHeight: tooltipPosition.maxHeight,
+          }}
+        >
           <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800">
             <span className="font-semibold text-white flex items-center gap-1.5">
               {isDualCoalDoubloon ? (
@@ -315,7 +349,8 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
