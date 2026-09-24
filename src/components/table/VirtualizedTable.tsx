@@ -576,7 +576,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
               ? (rowA, rowB) =>
                   (rowA.original.artillery?.caliberMm ?? 0) -
                   (rowB.original.artillery?.caliberMm ?? 0)
-              : undefined,
+              : 'auto',
             cell: (info) => {
               const val = info.getValue() as number | string | null | undefined;
               if (val == null || val === '' || (typeof val === 'number' && isNaN(val))) {
