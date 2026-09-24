@@ -1452,7 +1452,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
           <thead
             ref={tableHeaderRef}
             className="sticky z-30 bg-slate-950 text-slate-400 font-semibold border-b border-slate-800 shadow-md"
-            style={{ top: horizontalScrollMetrics.contentWidth > horizontalScrollMetrics.viewportWidth + 1 ? '67px' : '53px' }}
+            style={{ top: '0px' }}
           >
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
