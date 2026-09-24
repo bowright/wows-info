@@ -333,8 +333,99 @@ function parseTorpedoData(torpedo, projMap) {
   };
 }
 
-function parseSecondaryData(ship, atbaKeys, projMap) {
+const SECONDARY_AMMO_TYPE_ORDER = ['AP', 'HE', 'CS', 'torpedo', 'torpedo_deepwater', 'torpedo_alternative', 'depthcharge'];
+const SECONDARY_DISPERSION_FIELDS = ['idealDistance', 'idealRadius', 'minRadius', 'delim', 'radiusOnZero', 'radiusOnDelim', 'radiusOnMax'];
+const SECONDARY_HITTING_RANGE_KM = 6;
+const SECONDARY_TARGET_RADIUS_M = 50;
+
+// Selects the guns that can fire together at the highest DPM in one direction.
+function getMaxDpmSecondaryMounts(guns, hullAngles, ammoType) {
+  if (!hullAngles) return null;
+
+  const normalizeAngle = (angle) => (angle % 360 + 360) % 360;
+  const normalizeEndAngle = (angle) => normalizeAngle(angle) || 360;
+  const compareEvents = (a, b) => a.angle < b.angle
+    ? -1
+    : a.angle === b.angle
+      ? a.start ? Number(!b.start) : b.start ? -1 : 0
+      : 1;
+  const events = [];
+
+  for (const gun of guns) {
+    const restingAngle = hullAngles[gun.mountKey];
+    if (restingAngle === undefined || !gun.horizSector) continue;
+
+    let startAngle = normalizeAngle(restingAngle + gun.horizSector[0] + (gun.additionalAimSector?.[0] ?? 0));
+    let endAngle = normalizeEndAngle(restingAngle + gun.horizSector[1] + (gun.additionalAimSector?.[1] ?? 0));
+    if (startAngle === endAngle) {
+      startAngle = 0;
+      endAngle = 360;
+    }
+
+    const start = { angle: startAngle, start: true, gun };
+    const end = { angle: endAngle, start: false, gun };
+    const gunEvents = [start, end];
+    for (const deadZone of gun.deadZone) {
+      const deadStart = normalizeEndAngle(restingAngle + deadZone[0]);
+      const deadEnd = normalizeAngle(restingAngle + deadZone[1]);
+      if (deadZone[0] === gun.horizSector[0]) start.angle = deadEnd;
+      else if (deadZone[1] === gun.horizSector[1]) end.angle = deadStart;
+      else gunEvents.push(
+        { angle: deadStart, start: false, gun },
+        { angle: deadEnd, start: true, gun }
+      );
+    }
+
+    gunEvents.sort(compareEvents);
+    if (gunEvents[0].start) {
+      events.push(...(gunEvents[1].start ? gunEvents.slice(1, -1) : gunEvents));
+    } else {
+      events.push({ angle: 0, start: true, gun }, ...gunEvents, { angle: 360, start: false, gun });
+    }
+  }
+
+  events.sort(compareEvents);
+  let dpm = 0;
+  let maxDpm = 0;
+  const firingGuns = new Set();
+  let maxDpmGuns = new Set();
+  for (const event of events) {
+    const gunDpm = event.gun.dpmByType[ammoType] || 0;
+    if (event.start) {
+      dpm += gunDpm;
+      firingGuns.add(event.gun);
+      if (dpm > maxDpm) {
+        maxDpm = dpm;
+        maxDpmGuns = new Set(firingGuns);
+      }
+    } else {
+      dpm -= gunDpm;
+      firingGuns.delete(event.gun);
+    }
+  }
+
+  return maxDpmGuns;
+}
+
+function getSecondaryHitChance(dispersion, targetRadius, sigma) {
+  const normalCdf = (value) => {
+    const z = 1 / (1 + 0.2316419 * Math.abs(value));
+    let result = 0.3989423 * Math.exp(-value * value / 2) * z * (
+      0.3193815 + z * (-0.3565638 + z * (1.781478 + z * (-1.821256 + z * 1.330274)))
+    );
+    if (value > 0) result = 1 - result;
+    return result;
+  };
+  const scaledDispersion = dispersion / sigma;
+  const dispersionHitChance = (normalCdf(dispersion / scaledDispersion) - 0.5) * 2;
+  const targetHitChance = (normalCdf(targetRadius / scaledDispersion) - 0.5) * 2;
+  return Math.min(dispersionHitChance, targetHitChance)
+    + (1 - dispersionHitChance) * Math.min(1, targetRadius / dispersion);
+}
+
+function parseSecondaryData(ship, atbaKeys, projMap, hull) {
   const mounts = [];
+  const guns = [];
   let rangeM = 0;
 
   for (const key of atbaKeys) {
@@ -344,32 +435,60 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     const common = atba.COMMON || {};
     const mountEntries = Object.entries(atba)
       .filter(([mountKey, value]) => /^HP_/.test(mountKey) && value && typeof value === 'object');
+    const sourceMounts = mountEntries.length > 0
+      ? mountEntries
+      : Array.isArray(common.ammoList) && common.ammoList.length > 0
+        ? [[key, common]]
+        : [];
 
-    for (const [mountKey, mount] of mountEntries) {
+    for (const [mountKey, rawMount] of sourceMounts) {
+      const mount = { ...common, ...rawMount };
       const ammoList = Array.isArray(mount.ammoList) && mount.ammoList.length > 0
         ? mount.ammoList
         : common.ammoList;
       if (!Array.isArray(ammoList) || ammoList.length === 0) continue;
 
-      mounts.push({
+      const caliber = Math.round((mount.barrelDiameter || common.barrelDiameter || 0) * 1000);
+      const numBarrels = mount.numBarrels || common.numBarrels || 1;
+      const reload = mount.shotDelay || common.shotDelay || 0;
+      const projectileByType = new Map();
+      for (const ammoName of ammoList) {
+        const projectile = projMap.get(ammoName);
+        if (projectile && !projectileByType.has(projectile.ammoType)) {
+          projectileByType.set(projectile.ammoType, projectile);
+        }
+      }
+
+      const gunDpmByType = {};
+      for (const [ammoType, projectile] of projectileByType) {
+        gunDpmByType[ammoType] = reload > 0
+          ? (60 / reload) * numBarrels * (projectile.alphaDamage || 0)
+          : 0;
+      }
+      const subsetKey = JSON.stringify([
+        [...ammoList].sort(),
+        ...SECONDARY_DISPERSION_FIELDS.map((field) => mount[field])
+      ]);
+      guns.push({
         mountKey,
         ammoList,
-        caliberMm: Math.round((mount.barrelDiameter || common.barrelDiameter || 0) * 1000),
-        numBarrels: mount.numBarrels || common.numBarrels || 1,
-        reload: mount.shotDelay || common.shotDelay || 0
+        numBarrels,
+        reload,
+        dpmByType: gunDpmByType,
+        subsetKey,
+        horizSector: mount.horizSector,
+        deadZone: mount.deadZone || [],
+        additionalAimSector: mount.additionalAimSector,
+        idealDistance: mount.idealDistance,
+        idealRadius: mount.idealRadius,
+        minRadius: mount.minRadius,
+        delim: mount.delim,
+        radiusOnZero: mount.radiusOnZero,
+        radiusOnDelim: mount.radiusOnDelim,
+        radiusOnMax: mount.radiusOnMax,
+        taperDist: atba.taperDist || 0
       });
-    }
-
-    // Some carrier ATBA objects keep all mount data in COMMON and expose only
-    // positional HP_* entries. Use the common definition for those mounts.
-    if (mountEntries.length === 0 && Array.isArray(common.ammoList) && common.ammoList.length > 0) {
-      mounts.push({
-        mountKey: key,
-        ammoList: common.ammoList,
-        caliberMm: Math.round((common.barrelDiameter || 0) * 1000),
-        numBarrels: common.numBarrels || 1,
-        reload: common.shotDelay || 0
-      });
+      mounts.push({ mountKey, ammoList, caliberMm: caliber, numBarrels, reload });
     }
   }
 
@@ -395,9 +514,6 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     for (const ammoName of mount.ammoList) {
       const projectile = projMap.get(ammoName);
       if (!projectile) continue;
-      const dpm = mount.reload > 0
-        ? Math.round((60 / mount.reload) * mount.numBarrels * (projectile.alphaDamage || 0))
-        : 0;
       const penetration = projectile.ammoType === 'HE'
         ? (projectile.alphaPiercingHE || Math.floor(mount.caliberMm / 6))
         : projectile.ammoType === 'CS'
@@ -405,17 +521,14 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
           : projectile.alphaPiercingAP || 0;
 
       if (projectile.ammoType === 'HE') {
-        totals.heDpm += dpm;
         if (projectile.burnProb != null && projectile.burnProb >= 0) {
           const chance = Math.round(projectile.burnProb * 100);
           totals.fireChance = totals.fireChance == null ? chance : Math.max(totals.fireChance, chance);
         }
         shellTypes.add('HE');
       } else if (projectile.ammoType === 'AP') {
-        totals.apDpm += dpm;
         shellTypes.add('AP');
       } else if (projectile.ammoType === 'CS') {
-        totals.sapDpm += dpm;
         shellTypes.add('SAP');
       } else {
         continue;
@@ -429,13 +542,70 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     }
   }
 
+  const ammoTypes = [...new Set(guns.flatMap((gun) => Object.keys(gun.dpmByType)))];
+  ammoTypes.sort((a, b) => SECONDARY_AMMO_TYPE_ORDER.indexOf(a) - SECONDARY_AMMO_TYPE_ORDER.indexOf(b));
+  const maxDpmMounts = getMaxDpmSecondaryMounts(guns, hull.ANGLES, ammoTypes[0]);
+  const manualMode = atbaKeys.map((key) => ship[key]).find((atba) => atba?.controlGroups?.SWITCHABLE);
+  const manualModifiers = manualMode?.manualModeModifiers || {};
+  const shotDelayFactor = manualModifiers.GSMShotDelay ?? 1;
+  const rangeFactor = manualModifiers.GSMMaxDist ?? 1;
+  const idealRadiusFactor = manualModifiers.GSMIdealRadius ?? 1;
+  const dpmBySubset = new Map();
+
+  for (const gun of guns) {
+    const activeFraction = maxDpmMounts ? (maxDpmMounts.has(gun) ? 1 : 0) : 0.5;
+    for (const [ammoType, dpm] of Object.entries(gun.dpmByType)) {
+      const oneSideDpm = (dpm * activeFraction) / shotDelayFactor;
+      if (ammoType === 'HE') totals.heDpm += oneSideDpm;
+      else if (ammoType === 'AP') totals.apDpm += oneSideDpm;
+      else if (ammoType === 'CS') totals.sapDpm += oneSideDpm;
+    }
+    if (ammoTypes[0]) {
+      const oneSideDpm = ((gun.dpmByType[ammoTypes[0]] || 0) * activeFraction) / shotDelayFactor;
+      dpmBySubset.set(gun.subsetKey, (dpmBySubset.get(gun.subsetKey) || 0) + oneSideDpm);
+    }
+  }
+
+  const sigma = atbaKeys.map((key) => ship[key]?.sigmaCount).find((value) => value != null) ?? 1;
+  const subsetGuns = new Map();
+  for (const gun of guns) if (!subsetGuns.has(gun.subsetKey)) subsetGuns.set(gun.subsetKey, gun);
+  let hitDpm = 0;
+  const secondaryRangeKm = SECONDARY_HITTING_RANGE_KM;
+  const effectiveRangeM = rangeM * rangeFactor;
+  for (const [subsetKey, gun] of subsetGuns) {
+    const subsetDpm = dpmBySubset.get(subsetKey) || 0;
+    if (!subsetDpm) continue;
+    const rangeMAtTarget = secondaryRangeKm * 1000;
+    const horizontal = gun.minRadius * BW_SCALE
+      + (rangeMAtTarget / gun.idealDistance) * (gun.idealRadius * idealRadiusFactor - gun.minRadius);
+    const horizontalDispersion = gun.taperDist > 0 && rangeMAtTarget < gun.taperDist
+      ? (rangeMAtTarget / gun.taperDist) * (
+        gun.minRadius * BW_SCALE
+        + (gun.taperDist / gun.idealDistance) * (gun.idealRadius * idealRadiusFactor - gun.minRadius)
+      )
+      : horizontal;
+    const rangeFraction = rangeMAtTarget / effectiveRangeM;
+    const verticalMultiplier = rangeFraction > gun.delim
+      ? gun.radiusOnDelim
+        + ((rangeFraction - gun.delim) / (1 - gun.delim)) * (gun.radiusOnMax - gun.radiusOnDelim)
+      : gun.radiusOnZero
+        + (rangeFraction / gun.delim) * (gun.radiusOnDelim - gun.radiusOnZero);
+    const verticalDispersion = verticalMultiplier * horizontalDispersion;
+    hitDpm += (
+      getSecondaryHitChance(horizontalDispersion, SECONDARY_TARGET_RADIUS_M, sigma)
+      + getSecondaryHitChance(verticalDispersion, SECONDARY_TARGET_RADIUS_M, sigma)
+    ) / 2 * subsetDpm;
+  }
+
   const rangeKm = rangeM > 0 ? Math.round((rangeM / 1000) * 100) / 100 : null;
   const spm = reload > 0 ? Math.round((60 / reload) * totalBarrels * 10) / 10 : null;
   const fpm = totals.fireChance != null && spm != null ? Math.round((totals.fireChance / 100) * spm * 10) / 10 : null;
-  const hitDpm = Math.round((totals.heDpm + totals.apDpm + totals.sapDpm) * 0.45);
   const flightTime = rangeKm ? Math.round((rangeKm / 0.8) * 10) / 10 : null;
   const hdisp = rangeM > 0 ? Math.round(rangeM * 0.012) : null;
 
+  totals.heDpm = Math.round(totals.heDpm);
+  totals.apDpm = Math.round(totals.apDpm);
+  totals.sapDpm = Math.round(totals.sapDpm);
   return {
     desc: `${totalBarrels}x ${caliberMm} mm`,
     rangeKm,
@@ -448,10 +618,10 @@ function parseSecondaryData(ship, atbaKeys, projMap) {
     fireChance: totals.fireChance,
     penetrationMm: totals.penetrationMm,
     shellTypes: [...shellTypes],
-    hitDpm,
+    hitDpm: Math.round(hitDpm),
     flightTime,
     horizontalDispersion: hdisp,
-    sigma: 1.5,
+    sigma,
     firesPerMin: fpm,
     shellsPerMinute: spm,
     mounts
@@ -747,7 +917,7 @@ export function parseGameParamsData() {
     const topHullUpgrade = Object.values(ship.ShipUpgradeInfo || {}).find(u => u.components?.hull?.includes(modules.top.hullKey));
     const hullComp = topHullUpgrade?.components || {};
 
-    const secondaryData = parseSecondaryData(ship, hullComp.atba || [], projMap);
+    const secondaryData = parseSecondaryData(ship, hullComp.atba || [], projMap, topHull);
     const aircraftData = parseAircraftData(ship, aircraftMap, projMap);
     const submarineData = parseSubmarineData(ship, topHull, hullComp);
 

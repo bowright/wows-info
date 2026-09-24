@@ -128,6 +128,25 @@ async function runVerification() {
   const balao = catalog.find((s) => s.name === 'PASS210_Balao');
   assert(ohio?.secondary?.rangeKm === 7.5, `Ohio secondary range is 7.5 km (found ${ohio?.secondary?.rangeKm})`);
   assert((ohio?.secondary?.heDpm || 0) > 0, `Ohio secondary HE DPM is populated (found ${ohio?.secondary?.heDpm})`);
+  assert(
+    (ohio?.secondary?.heDpm || 0) + (ohio?.secondary?.apDpm || 0) + (ohio?.secondary?.sapDpm || 0) === 308571,
+    `Ohio one-side Secondary DPM matches ShipTool (found ${ohio?.secondary?.heDpm + ohio?.secondary?.apDpm + ohio?.secondary?.sapDpm})`
+  );
+  assert(ohio?.secondary?.hitDpm === 79148, `Ohio 6 km Hitting DPM matches ShipTool (found ${ohio?.secondary?.hitDpm})`);
+
+  const schlieffen = catalog.find((s) => s.index === 'PGSB210');
+  assert(
+    (schlieffen?.secondary?.heDpm || 0) + (schlieffen?.secondary?.apDpm || 0) + (schlieffen?.secondary?.sapDpm || 0) === 384930,
+    `Schlieffen Secondary DPM matches ShipTool (found ${schlieffen?.secondary?.heDpm + schlieffen?.secondary?.apDpm + schlieffen?.secondary?.sapDpm})`
+  );
+  assert(schlieffen?.secondary?.hitDpm === 101023, `Schlieffen 6 km Hitting DPM matches ShipTool (found ${schlieffen?.secondary?.hitDpm})`);
+
+  const grafZeppelin = catalog.find((s) => s.index === 'PGSA518');
+  assert(
+    (grafZeppelin?.secondary?.heDpm || 0) + (grafZeppelin?.secondary?.apDpm || 0) + (grafZeppelin?.secondary?.sapDpm || 0) === 275722,
+    `Graf Zeppelin manual Secondary DPM matches ShipTool (found ${grafZeppelin?.secondary?.heDpm + grafZeppelin?.secondary?.apDpm + grafZeppelin?.secondary?.sapDpm})`
+  );
+  assert(grafZeppelin?.secondary?.hitDpm === 163747, `Graf Zeppelin manual 6 km Hitting DPM matches ShipTool (found ${grafZeppelin?.secondary?.hitDpm})`);
   assert((napoli?.secondary?.sapDpm || 0) > 0, `Napoli secondary SAP DPM is populated (found ${napoli?.secondary?.sapDpm})`);
   assert((midway?.aircraft?.torpedoBombers?.planes?.[0]?.maxHealth || 0) > 0, 'Midway torpedo bomber stats are populated');
   assert(midway?.smokePenalty === null, 'Midway smoke penalty is null when the hull has no smoke-firing penalty');
