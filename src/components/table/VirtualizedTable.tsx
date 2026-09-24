@@ -1393,6 +1393,18 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
     scrollMargin,
   });
 
+  useEffect(() => {
+    if (rows.length === 0 || rowVirtualizer.getVirtualItems().length > 0) return;
+
+    const tableContainer = tableContainerRef.current;
+    const tableHeader = tableHeaderRef.current;
+    if (!tableContainer || !tableHeader) return;
+
+    const stickyTop = Number.parseFloat(tableHeader.style.top) || 0;
+    const tableTop = window.scrollY + tableContainer.getBoundingClientRect().top;
+    window.scrollTo({ top: Math.max(0, tableTop - stickyTop), behavior: 'auto' });
+  }, [data, rowVirtualizer, rows.length]);
+
   const virtualRows = rowVirtualizer.getVirtualItems();
   const totalSize = rowVirtualizer.getTotalSize();
 
