@@ -118,7 +118,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const selectAllNations = useShipStore((state) => state.selectAllNations);
   const clearNations = useShipStore((state) => state.clearNations);
   const selectedTiers = useShipStore((state) => state.selectedTiers);
-  const toggleTier = useShipStore((state) => state.toggleTier);
+  const setSelectedTiers = useShipStore((state) => state.setSelectedTiers);
   const selectAllTiers = useShipStore((state) => state.selectAllTiers);
   const clearTiers = useShipStore((state) => state.clearTiers);
   const selectedClasses = useShipStore((state) => state.selectedClasses);
@@ -149,32 +149,74 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     !useTopModules ||
     applyCoupons;
 
+  const minTier = selectedTiers?.length ? Math.min(...selectedTiers) : 1;
+  const maxTier = selectedTiers?.length ? Math.max(...selectedTiers) : TIERS[TIERS.length - 1].tier;
+  const minTierPosition = ((minTier - 1) / (TIERS.length - 1)) * 100;
+  const maxTierPosition = ((maxTier - 1) / (TIERS.length - 1)) * 100;
+
+  const setTierRange = (min: number, max: number) => {
+    setSelectedTiers(TIERS.filter(({ tier }) => tier >= min && tier <= max).map(({ tier }) => tier));
+  };
+
   return (
     <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-4">
       {/* Top Row: Search, Preset Tabs, Modifier Drawer Button, Reset Filters */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        {/* Search Input */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search ship by name, hull index, or tier..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-9 pr-9 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
-          />
-          {searchQuery && (
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search ship by name, hull index, or tier..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-950/80 border border-slate-800 rounded-lg pl-9 pr-9 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons: Modifiers & Reset */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-200"
+              onClick={onOpenModifierDrawer}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
+                activeModifierCount > 0
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
+                  : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700'
+              }`}
             >
-              <X className="w-4 h-4" />
+              <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
+              <span>Build Modifiers</span>
+              {activeModifierCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+                  {activeModifierCount}
+                </span>
+              )}
             </button>
-          )}
+
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800 transition"
+                title="Reset all filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">Reset</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Preset Tabs */}
-        <div className="flex items-center overflow-x-auto gap-1 bg-slate-950/60 p-1 rounded-lg border border-slate-800 scrollbar-none">
+        <div className="flex flex-wrap items-center gap-1 bg-slate-950/60 p-1 rounded-lg border border-slate-800">
           {PRESETS.map((p) => {
             const Icon = p.icon;
             const isActive = activePreset === p.id;
@@ -194,47 +236,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             );
           })}
         </div>
-
-        {/* Action Buttons: Modifiers & Reset */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenModifierDrawer}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-              activeModifierCount > 0
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
-                : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700'
-            }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-400" />
-            <span>Build Modifiers</span>
-            {activeModifierCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
-                {activeModifierCount}
-              </span>
-            )}
-          </button>
-
-          {hasActiveFilters && (
-            <button
-              onClick={resetFilters}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800 transition"
-              title="Reset all filters"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden sm:inline">Reset</span>
-            </button>
-          )}
-        </div>
       </div>
 
       {/* Row 2: Tiers & Classes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 border-t border-slate-800/80">
-        {/* Tier Pills */}
-        <div className="flex items-center flex-wrap gap-1">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1.5 w-12 shrink-0">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 pt-1 border-t border-slate-800/80">
+        {/* Tier Range Slider */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">
             Tier:
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={selectAllTiers}
               className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
@@ -256,23 +267,52 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               None
             </button>
           </div>
-          <div className="h-4 w-px bg-slate-800 mx-0.5" />
-          {TIERS.map((t) => {
-            const isSelected = selectedTiers !== null && selectedTiers.includes(t.tier);
-            return (
-              <button
-                key={t.tier}
-                onClick={() => toggleTier(t.tier)}
-                className={`px-2 py-1 rounded text-xs font-mono font-medium border transition ${
-                  isSelected
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
-                    : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
+          <div
+            className="flex-1 min-w-0 px-2"
+            title="Drag the end handles to filter a tier range. Right-click a tier to select only it."
+            onContextMenu={(event) => {
+              event.preventDefault();
+              const bounds = event.currentTarget.getBoundingClientRect();
+              const step = (event.clientX - bounds.left) / bounds.width;
+              const tier = Math.round(step * (TIERS.length - 1)) + TIERS[0].tier;
+              setSelectedTiers([Math.max(TIERS[0].tier, Math.min(TIERS[TIERS.length - 1].tier, tier))]);
+            }}
+          >
+            <div className="relative h-6">
+              <div className="absolute left-0 right-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-700" />
+              {selectedTiers?.length !== 0 && (
+                <div
+                  className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-amber-500/70"
+                  style={{ left: `${minTierPosition}%`, width: `${maxTierPosition - minTierPosition}%` }}
+                />
+              )}
+              <input
+                type="range"
+                min={TIERS[0].tier}
+                max={TIERS[TIERS.length - 1].tier}
+                step={1}
+                value={minTier}
+                aria-label="Minimum tier"
+                aria-valuetext={`Tier ${minTier}`}
+                onChange={(event) => setTierRange(Math.min(event.currentTarget.valueAsNumber, maxTier), maxTier)}
+                className={`tier-range-input z-10 ${minTier === maxTier ? 'tier-range-input-min-overlap' : ''}`}
+              />
+              <input
+                type="range"
+                min={TIERS[0].tier}
+                max={TIERS[TIERS.length - 1].tier}
+                step={1}
+                value={maxTier}
+                aria-label="Maximum tier"
+                aria-valuetext={`Tier ${maxTier}`}
+                onChange={(event) => setTierRange(minTier, Math.max(event.currentTarget.valueAsNumber, minTier))}
+                className={`tier-range-input z-20 ${minTier === maxTier ? 'tier-range-input-max-overlap' : ''}`}
+              />
+            </div>
+            <div className="flex justify-between text-[9px] font-mono text-slate-500 px-0.5" aria-hidden="true">
+              {TIERS.map((tier) => <span key={tier.tier}>{tier.label}</span>)}
+            </div>
+          </div>
         </div>
 
         {/* Class Pills */}

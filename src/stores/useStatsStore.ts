@@ -33,7 +33,7 @@ export interface StatsFilters {
   selectedBracket: SkillBracket;
   selectedTiers: number[] | null;
   selectedClasses: ShipClass[] | null;
-  selectedAcquisition: string; // 'All' | 'Coal' | 'Steel' | ...
+  selectedAcquisitions: string[] | null;
   searchQuery: string;
 }
 
@@ -61,7 +61,8 @@ export interface StatsStoreState extends StatsFilters {
   selectAllClasses: () => void;
   clearClasses: () => void;
   toggleShipClass: (shipClass: ShipClass) => void;
-  setSelectedAcquisition: (category: string) => void;
+  setSelectedAcquisitions: (categories: string[] | null) => void;
+  toggleAcquisition: (category: string) => void;
   setSearchQuery: (query: string) => void;
   resetFilters: () => void;
 
@@ -261,7 +262,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
   selectedBracket: 'all',
   selectedTiers: null,
   selectedClasses: null,
-  selectedAcquisition: 'All',
+  selectedAcquisitions: null,
   searchQuery: '',
 
   statsCache: {},
@@ -329,7 +330,19 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
     }
   },
 
-  setSelectedAcquisition: (category) => set({ selectedAcquisition: category }),
+  setSelectedAcquisitions: (categories) =>
+    set({ selectedAcquisitions: categories ? [...categories] : null }),
+
+  toggleAcquisition: (category) => {
+    const current = get().selectedAcquisitions;
+    if (current === null) {
+      set({ selectedAcquisitions: [category] });
+    } else if (current.includes(category)) {
+      set({ selectedAcquisitions: current.filter((item) => item !== category) });
+    } else {
+      set({ selectedAcquisitions: [...current, category] });
+    }
+  },
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 
@@ -338,7 +351,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
       selectedBracket: 'all',
       selectedTiers: null,
       selectedClasses: null,
-      selectedAcquisition: 'All',
+      selectedAcquisitions: null,
       searchQuery: '',
     }),
 
@@ -446,7 +459,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
       selectedBracket,
       selectedTiers,
       selectedClasses,
-      selectedAcquisition,
+      selectedAcquisitions,
       searchQuery,
     } = get();
 
@@ -468,9 +481,8 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
 
         // Acquisition filter
         if (
-          selectedAcquisition &&
-          selectedAcquisition !== 'All' &&
-          !matchesAcquisitionCategory(ship.category, selectedAcquisition)
+          selectedAcquisitions !== null &&
+          !selectedAcquisitions.some((category) => matchesAcquisitionCategory(ship.category, category))
         ) {
           return false;
         }

@@ -1439,7 +1439,7 @@ export const VirtualizedTable: React.FC<VirtualizedTableProps> = ({
                             }}
                             className={`p-2.5 whitespace-nowrap text-xs select-text ${
                               isPinned
-                                ? `sticky z-20 border-r border-slate-800/80 ${
+                                ? `sticky z-20 hover:z-40 border-r border-slate-800/80 ${
                                     isSelected ? 'bg-slate-900/95' : 'bg-slate-950/95'
                                   }`
                                 : ''

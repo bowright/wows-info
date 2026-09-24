@@ -14,3 +14,71 @@ body {
   background-color: #0b1120;
   color: #f1f5f9;
 }
+
+.tier-range-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 1.5rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+.tier-range-input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+}
+
+.tier-range-input::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 2px solid #0b1120;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 45%);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.tier-range-input::-moz-range-track {
+  height: 4px;
+  background: transparent;
+}
+
+.tier-range-input::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #0b1120;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 45%);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.tier-range-input-min-overlap::-webkit-slider-thumb {
+  transform: translateX(-5px);
+}
+
+.tier-range-input-max-overlap::-webkit-slider-thumb {
+  transform: translateX(5px);
+}
+
+.tier-range-input-min-overlap::-moz-range-thumb {
+  transform: translateX(-5px);
+}
+
+.tier-range-input-max-overlap::-moz-range-thumb {
+  transform: translateX(5px);
+}
+
+.tier-range-input:focus-visible::-webkit-slider-thumb,
+.tier-range-input:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 30%);
+}

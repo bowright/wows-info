@@ -116,7 +116,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     selectedBracket,
     selectedTiers,
     selectedClasses,
-    selectedAcquisition,
+    selectedAcquisitions,
     searchQuery,
     isLoading,
     error,
@@ -135,7 +135,8 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     toggleShipClass,
     selectAllClasses,
     clearClasses,
-    setSelectedAcquisition,
+    setSelectedAcquisitions,
+    toggleAcquisition,
     setSearchQuery,
     resetFilters,
     loadStats,
@@ -225,7 +226,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     selectedBracket,
     selectedTiers,
     selectedClasses,
-    selectedAcquisition,
+    selectedAcquisitions,
     searchQuery,
   ]);
 
@@ -749,11 +750,13 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
               Acquisition:
             </span>
             {ACQUISITION_PILLS.map((acq) => {
-              const isActive = selectedAcquisition === acq;
+              const isActive = acq === 'All'
+                ? selectedAcquisitions === null
+                : selectedAcquisitions !== null && selectedAcquisitions.includes(acq);
               return (
                 <button
                   key={acq}
-                  onClick={() => setSelectedAcquisition(acq)}
+                  onClick={() => acq === 'All' ? setSelectedAcquisitions(null) : toggleAcquisition(acq)}
                   className={`px-2.5 py-0.5 rounded text-xs font-medium transition ${
                     isActive
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
@@ -858,7 +861,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
             </div>
 
             {/* Reset Filters */}
-            {(selectedAcquisition !== 'All' ||
+            {(selectedAcquisitions !== null ||
               selectedBracket !== 'all' ||
               selectedTiers !== null ||
               selectedClasses !== null ||
@@ -1060,7 +1063,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
                             }}
                             className={`p-2.5 whitespace-nowrap text-xs select-text ${
                               isPinned
-                                ? 'sticky z-20 border-r border-slate-800 bg-slate-950/95'
+                                ? 'sticky z-20 hover:z-40 border-r border-slate-800 bg-slate-950/95'
                                 : ''
                             } ${index === 5 ? 'border-r-2 border-amber-500/40' : ''}`}
                           >
