@@ -34,6 +34,29 @@ const formatCompact = (val: number | null | undefined): string => {
   return val.toLocaleString();
 };
 
+const CURRENCY_ICON_PATHS: Record<string, string> = {
+  coal: '/icons/currency/coal.svg',
+  steel: '/icons/currency/steel.svg',
+  credits: '/icons/currency/credits.svg',
+  gold: '/icons/currency/doubloons.svg',
+};
+
+const CurrencyIcon: React.FC<{ currency: string; className?: string }> = ({
+  currency,
+  className = 'w-3 h-3',
+}) => {
+  const src = CURRENCY_ICON_PATHS[currency];
+  return src ? (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={`shrink-0 object-contain ${className}`}
+    />
+  ) : null;
+};
+
 export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
   acquisition,
   applyCoupons = false,
@@ -92,6 +115,7 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
     category === 'Coal / Doubloon' ||
     (categories?.includes('Coal') && categories?.includes('Doubloon')) ||
     (primaryCurrency === 'coal' && secondaryCurrency === 'gold');
+  const primaryCurrencyIconPath = CURRENCY_ICON_PATHS[primaryCurrency];
 
   // Compute effective price based on coupon toggle
   const effectivePrice =
@@ -184,22 +208,24 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
   return (
     <div
       ref={tooltipAnchorRef}
-      className="inline-block"
+      className="inline-block min-w-0 max-w-full"
       onMouseEnter={showTooltip}
       onMouseLeave={() => setTooltipPosition(null)}
     >
       <span
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-text ${badgeClasses}`}
+        className={`inline-flex min-w-0 max-w-full items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-sans font-medium border cursor-help transition select-text ${badgeClasses}`}
       >
         {isDualCoalDoubloon ? (
           <span className="flex items-center gap-0.5 shrink-0">
-            <Flame className="w-3 h-3 text-amber-400" />
-            <Coins className="w-3 h-3 text-yellow-400" />
+            <CurrencyIcon currency="coal" className="w-4 h-4" />
+            <CurrencyIcon currency="gold" className="w-4 h-4" />
           </span>
+        ) : primaryCurrencyIconPath ? (
+          <CurrencyIcon currency={primaryCurrency} className="w-4 h-4" />
         ) : (
           <IconComponent className="w-3 h-3 shrink-0" />
         )}
-        <span className="truncate max-w-[155px]" title={label}>{label}</span>
+        <span className="min-w-0 max-w-[155px] truncate" title={label}>{label}</span>
       </span>
 
       {/* Popover / Tooltip */}
@@ -217,13 +243,17 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
             <span className="font-semibold text-white flex items-center gap-1.5">
               {isDualCoalDoubloon ? (
                 <>
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
-                  <Coins className="w-3.5 h-3.5 text-yellow-400" />
+                  <CurrencyIcon currency="coal" className="w-3.5 h-3.5" />
+                  <CurrencyIcon currency="gold" className="w-3.5 h-3.5" />
                   <span>Coal or Doubloons</span>
                 </>
               ) : (
                 <>
-                  <IconComponent className="w-3.5 h-3.5 text-amber-400" />
+                  {primaryCurrencyIconPath ? (
+                    <CurrencyIcon currency={primaryCurrency} className="w-3.5 h-3.5" />
+                  ) : (
+                    <IconComponent className="w-3.5 h-3.5 text-amber-400" />
+                  )}
                   <span>{category}</span>
                 </>
               )}
@@ -241,7 +271,7 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
               <div className="space-y-1 text-slate-200">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 flex items-center gap-1">
-                    <Flame className="w-3 h-3 text-amber-400" /> Coal Base:
+                    <CurrencyIcon currency="coal" /> Coal Base:
                   </span>
                   <span className="font-mono font-medium text-amber-300">
                     {formattedBasePrice} COAL
@@ -249,7 +279,7 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400 flex items-center gap-1">
-                    <Coins className="w-3 h-3 text-yellow-400" /> Doubloons:
+                    <CurrencyIcon currency="gold" /> Doubloons:
                   </span>
                   <span className="font-mono font-medium text-yellow-300">
                     {formattedSecondaryBasePrice} DOUB
@@ -274,7 +304,9 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
 
                 {steelEquivalent != null && (
                   <div className="flex items-center justify-between text-cyan-300 text-[11px] pt-0.5">
-                    <span>1:10 Steel Substitution:</span>
+                    <span className="flex items-center gap-1">
+                      <CurrencyIcon currency="steel" /> 1:10 Steel Substitution:
+                    </span>
                     <span className="font-mono font-semibold">
                       {steelEquivalent.toLocaleString()} Steel
                     </span>
@@ -286,7 +318,9 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
                 {/* Single Price Information */}
                 {price != null && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Base Price:</span>
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <CurrencyIcon currency={primaryCurrency} /> Base Price:
+                    </span>
                     <span className="font-mono font-medium text-slate-200">
                       {formattedBasePrice} {primaryCurrency.toUpperCase()}
                     </span>
@@ -308,7 +342,9 @@ export const AcquisitionBadge: React.FC<AcquisitionBadgeProps> = ({
                 {/* Steel to Coal substitution */}
                 {category === 'Coal' && steelEquivalent != null && (
                   <div className="flex items-center justify-between text-cyan-300 text-[11px] pt-0.5">
-                    <span>1:10 Steel Substitution:</span>
+                    <span className="flex items-center gap-1">
+                      <CurrencyIcon currency="steel" /> 1:10 Steel Substitution:
+                    </span>
                     <span className="font-mono font-semibold">
                       {steelEquivalent.toLocaleString()} Steel
                     </span>

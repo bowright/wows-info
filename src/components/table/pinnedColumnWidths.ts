@@ -4,5 +4,5 @@ export const PINNED_COLUMN_WIDTHS = {
   shipClass: 58,
   nation: 54,
   shipName: 160,
-  acquisition: 150,
+  acquisition: 190,
 } as const;
