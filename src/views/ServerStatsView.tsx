@@ -24,6 +24,7 @@ import { copyToClipboard } from '../utils/clipboard';
 import {
   useStatsStore,
   EnrichedShipStatRow,
+  STATS_NATIONS,
 } from '../stores/useStatsStore';
 import { useShipStore } from '../stores/useShipStore';
 import { AcquisitionBadge } from '../components/common/AcquisitionBadge';
@@ -67,6 +68,22 @@ const ACQUISITION_PILLS = [
   'Tech Tree',
   'Removed',
 ];
+
+const NATION_LABELS: Record<(typeof STATS_NATIONS)[number], string> = {
+  usa: 'U.S.A.',
+  japan: 'Japan',
+  germany: 'Germany',
+  russia: 'U.S.S.R.',
+  united_kingdom: 'U.K.',
+  france: 'France',
+  italy: 'Italy',
+  pan_asia: 'Pan-Asia',
+  europe: 'Europe',
+  netherlands: 'Netherlands',
+  commonwealth: 'Commonwealth',
+  pan_america: 'Pan-America',
+  spain: 'Spain',
+};
 
 const SERVER_OPTIONS: Array<{ id: StatsServer; label: string; sub: string }> = [
   { id: 'eu', label: 'EU', sub: 'Europe' },
@@ -117,6 +134,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     selectedBracket,
     selectedTiers,
     selectedClasses,
+    selectedNations,
     selectedAcquisitions,
     searchQuery,
     isLoading,
@@ -136,6 +154,9 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     toggleShipClass,
     selectAllClasses,
     clearClasses,
+    toggleNation,
+    selectAllNations,
+    clearNations,
     setSelectedAcquisitions,
     toggleAcquisition,
     setSearchQuery,
@@ -227,6 +248,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
     selectedBracket,
     selectedTiers,
     selectedClasses,
+    selectedNations,
     selectedAcquisitions,
     searchQuery,
   ]);
@@ -872,6 +894,7 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
               selectedBracket !== 'all' ||
               selectedTiers !== null ||
               selectedClasses !== null ||
+              selectedNations !== null ||
               searchQuery) && (
               <button
                 onClick={resetFilters}
@@ -882,6 +905,50 @@ export const ServerStatsView: React.FC<ServerStatsViewProps> = ({ onNavigate }) 
               </button>
             )}
           </div>
+        </div>
+
+        {/* Nation Filter */}
+        <div className="flex flex-wrap items-center gap-1 pt-2 border-t border-slate-800/60">
+          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mr-1">
+            Nation:
+          </span>
+          <button
+            onClick={selectAllNations}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+              selectedNations === null
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={clearNations}
+            className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+              selectedNations !== null && selectedNations.length === 0
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-sm'
+                : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+            }`}
+          >
+            None
+          </button>
+          <div className="h-4 w-px bg-slate-800 mx-0.5" />
+          {STATS_NATIONS.map((nation) => {
+            const isSelected = selectedNations !== null && selectedNations.includes(nation);
+            return (
+              <button
+                key={nation}
+                onClick={() => toggleNation(nation)}
+                className={`px-2 py-0.5 rounded text-xs font-medium transition border ${
+                  isSelected
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                    : 'bg-slate-950 text-slate-500 border-slate-800 hover:text-slate-300'
+                }`}
+              >
+                {NATION_LABELS[nation]}
+              </button>
+            );
+          })}
         </div>
       </div>
 

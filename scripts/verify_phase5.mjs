@@ -12,6 +12,8 @@ import {
   computeAggregateMetrics,
   normalizeServer,
   matchesAcquisitionCategory,
+  useStatsStore,
+  STATS_NATIONS,
 } from '../src/stores/useStatsStore.ts';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -383,9 +385,95 @@ async function runVerification() {
   );
 
   // ----------------------------------------------------
-  // Suite 5: Frontend Component & Store Integration Verification
+  // Suite 5: Nation Filtering & Aggregate Updates
   // ----------------------------------------------------
-  console.log('\nSuite 5: Frontend Component & Store Integration Verification');
+  console.log('\nSuite 5: Nation Filtering & Aggregate Updates');
+
+  const initialStatsState = useStatsStore.getState();
+  const statsActions = useStatsStore.getState();
+  statsActions.resetFilters();
+  useStatsStore.setState({ currentStats: allShips });
+  assert(useStatsStore.getState().selectedNations === null, 'Nation filter defaults to All');
+  assert(statsActions.getFilteredStats().length === allShips.length, 'All nations returns every statistics row');
+
+  for (const nation of STATS_NATIONS) {
+    statsActions.setSelectedNations([nation.toUpperCase()]);
+    const nationRows = statsActions.getFilteredStats();
+    const expectedCount = allShips.filter((ship) => ship.nation.toLowerCase() === nation).length;
+    assert(
+      nationRows.length > 0 && nationRows.length === expectedCount && nationRows.every((ship) => ship.nation.toLowerCase() === nation),
+      `Nation '${nation}' matches its case-insensitive statistics records (${expectedCount} ships)`
+    );
+  }
+
+  statsActions.selectAllNations();
+  statsActions.toggleNation('Japan');
+  assert(JSON.stringify(useStatsStore.getState().selectedNations) === '["japan"]', 'Toggling Japan from All isolates Japan');
+  statsActions.toggleNation('USA');
+  const japanUsaRows = statsActions.getFilteredStats();
+  assert(
+    japanUsaRows.length === allShips.filter((ship) => ['japan', 'usa'].includes(ship.nation.toLowerCase())).length,
+    'Selecting Japan and U.S.A. returns the union of both nations'
+  );
+  statsActions.toggleNation('usa');
+  assert(JSON.stringify(useStatsStore.getState().selectedNations) === '["japan"]', 'Toggling U.S.A. again removes it');
+
+  const japanShips = allShips.filter((ship) => ship.nation.toLowerCase() === 'japan');
+  const japanBattles = japanShips.reduce((sum, ship) => sum + ship.battles, 0);
+  const japanWins = japanShips.reduce((sum, ship) => sum + ship.wins, 0);
+  const japanDamage = japanShips.reduce((sum, ship) => sum + ship.damage, 0);
+  const japanAggregate = statsActions.getAggregateMetrics();
+  assert(japanAggregate.totalShips === japanShips.length, 'Nation filtering updates the aggregate ship count');
+  assert(japanAggregate.totalBattles === japanBattles, 'Nation filtering updates the aggregate battle count');
+  assert(japanAggregate.winRate === Math.round(japanWins / japanBattles * 10000) / 100, 'Nation filtering preserves battle-weighted win rate');
+  assert(japanAggregate.avgDamage === Math.round(japanDamage / japanBattles), 'Nation filtering preserves battle-weighted average damage');
+
+  statsActions.toggleNation('JAPAN');
+  assert(statsActions.getFilteredStats().length === 0, 'Removing the last selected nation returns no ships');
+  statsActions.selectAllNations();
+  statsActions.clearNations();
+  assert(statsActions.getFilteredStats().length === 0, 'None excludes all statistics rows');
+  const emptyAggregate = statsActions.getAggregateMetrics();
+  assert(Object.values(emptyAggregate).every((value) => value === 0), 'None clears every aggregate metric');
+
+  for (const nation of STATS_NATIONS) statsActions.toggleNation(nation);
+  assert(useStatsStore.getState().selectedNations === null, 'Selecting all 13 nation pills restores All');
+  assert(statsActions.getFilteredStats().length === allShips.length, 'Selecting all nation pills restores every row');
+
+  statsActions.setSelectedNations(['JAPAN']);
+  statsActions.setSelectedTiers([10]);
+  statsActions.setSelectedClasses(['Battleship']);
+  statsActions.setSelectedAcquisitions(['Tech Tree']);
+  statsActions.setSearchQuery(' Yamato ');
+  const compoundRows = statsActions.getFilteredStats();
+  const expectedCompoundShips = allShips.filter((ship) =>
+    ship.nation === 'Japan' && ship.tier === 10 && ship.class === 'Battleship' &&
+    ship.category === 'Tech Tree' && ship.dispName.toLowerCase().includes('yamato')
+  );
+  assert(
+    compoundRows.length > 0 && JSON.stringify(compoundRows.map((ship) => ship.shipId)) === JSON.stringify(expectedCompoundShips.map((ship) => ship.shipId)),
+    'Nation filter intersects with tier, class, acquisition, and search'
+  );
+  statsActions.setBracket('high');
+  const highSkillRows = statsActions.getFilteredStats();
+  assert(
+    highSkillRows.length > 0 && highSkillRows.every((ship) => ship.battles === expectedCompoundShips.find((candidate) => candidate.shipId === ship.shipId).brackets.high.battles),
+    'Nation-filtered rows use the selected skill bracket metrics'
+  );
+  assert(
+    statsActions.getAggregateMetrics().totalBattles === expectedCompoundShips.reduce((sum, ship) => sum + ship.brackets.high.battles, 0),
+    'Nation-filtered aggregate updates when the skill bracket changes'
+  );
+  statsActions.resetFilters();
+  assert(useStatsStore.getState().selectedNations === null, 'Reset restores All nations');
+  assert(statsActions.getFilteredStats().length === allShips.length, 'Reset restores all rows after intersecting filters');
+  assert(statsActions.getAggregateMetrics().totalBattles === allShips.reduce((sum, ship) => sum + ship.battles, 0), 'Reset restores the full aggregate');
+  useStatsStore.setState(initialStatsState);
+
+  // ----------------------------------------------------
+  // Suite 6: Frontend Component & Store Integration Verification
+  // ----------------------------------------------------
+  console.log('\nSuite 6: Frontend Component & Store Integration Verification');
 
   // Verify useStatsStore.ts
   const statsStorePath = path.join(SRC_DIR, 'stores/useStatsStore.ts');
@@ -451,6 +539,9 @@ async function runVerification() {
   assert(serverStatsViewContent.includes('SPAN_OPTIONS'), 'ServerStatsView defines timespan selection');
   assert(serverStatsViewContent.includes('BRACKET_OPTIONS'), 'ServerStatsView defines skill bracket selection');
   assert(serverStatsViewContent.includes('ACQUISITION_PILLS'), 'ServerStatsView defines acquisition pills');
+  assert(serverStatsViewContent.includes('STATS_NATIONS.map'), 'ServerStatsView renders all statistics nation pills');
+  assert(serverStatsViewContent.includes('onClick={selectAllNations}'), 'ServerStatsView offers All nations');
+  assert(serverStatsViewContent.includes('onClick={clearNations}'), 'ServerStatsView offers None nations');
   assert(serverStatsViewContent.includes('useVirtualizer'), 'ServerStatsView uses TanStack Virtual for 60fps rendering');
   assert(serverStatsViewContent.includes('AcquisitionBadge'), 'ServerStatsView renders AcquisitionBadge in pinned column');
 

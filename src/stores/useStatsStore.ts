@@ -12,6 +12,22 @@ import type {
 } from '../types/index.ts';
 import { calculatePR } from '../utils/prCalculator.ts';
 
+export const STATS_NATIONS = [
+  'usa',
+  'japan',
+  'germany',
+  'russia',
+  'united_kingdom',
+  'france',
+  'italy',
+  'pan_asia',
+  'europe',
+  'netherlands',
+  'commonwealth',
+  'pan_america',
+  'spain',
+] as const;
+
 export interface EnrichedShipStatRow extends ShipStatMetrics {
   shipId: number;
   name: string;
@@ -33,6 +49,7 @@ export interface StatsFilters {
   selectedBracket: SkillBracket;
   selectedTiers: number[] | null;
   selectedClasses: ShipClass[] | null;
+  selectedNations: string[] | null;
   selectedAcquisitions: string[] | null;
   searchQuery: string;
 }
@@ -61,6 +78,10 @@ export interface StatsStoreState extends StatsFilters {
   selectAllClasses: () => void;
   clearClasses: () => void;
   toggleShipClass: (shipClass: ShipClass) => void;
+  setSelectedNations: (nations: string[] | null) => void;
+  selectAllNations: () => void;
+  clearNations: () => void;
+  toggleNation: (nation: string) => void;
   setSelectedAcquisitions: (categories: string[] | null) => void;
   toggleAcquisition: (category: string) => void;
   setSearchQuery: (query: string) => void;
@@ -262,6 +283,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
   selectedBracket: 'all',
   selectedTiers: null,
   selectedClasses: null,
+  selectedNations: null,
   selectedAcquisitions: null,
   searchQuery: '',
 
@@ -330,6 +352,26 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
     }
   },
 
+  setSelectedNations: (nations) =>
+    set({ selectedNations: nations ? nations.map((nation) => nation.toLowerCase()) : null }),
+
+  selectAllNations: () => set({ selectedNations: null }),
+
+  clearNations: () => set({ selectedNations: [] }),
+
+  toggleNation: (nation) => {
+    const normalized = nation.toLowerCase();
+    const current = get().selectedNations;
+    if (current === null) {
+      set({ selectedNations: [normalized] });
+    } else if (current.includes(normalized)) {
+      set({ selectedNations: current.filter((item) => item !== normalized) });
+    } else {
+      const next = [...current, normalized];
+      set({ selectedNations: next.length === STATS_NATIONS.length ? null : next });
+    }
+  },
+
   setSelectedAcquisitions: (categories) =>
     set({ selectedAcquisitions: categories ? [...categories] : null }),
 
@@ -351,6 +393,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
       selectedBracket: 'all',
       selectedTiers: null,
       selectedClasses: null,
+      selectedNations: null,
       selectedAcquisitions: null,
       searchQuery: '',
     }),
@@ -459,6 +502,7 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
       selectedBracket,
       selectedTiers,
       selectedClasses,
+      selectedNations,
       selectedAcquisitions,
       searchQuery,
     } = get();
@@ -476,6 +520,11 @@ export const useStatsStore = create<StatsStoreState>((set, get) => ({
 
         // Class filter
         if (selectedClasses !== null && !selectedClasses.includes(ship.class)) {
+          return false;
+        }
+
+        // Nation filter
+        if (selectedNations !== null && !selectedNations.includes(ship.nation.toLowerCase())) {
           return false;
         }
 
